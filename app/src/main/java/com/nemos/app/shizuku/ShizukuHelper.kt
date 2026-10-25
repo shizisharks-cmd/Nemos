@@ -17,9 +17,6 @@ object ShizukuHelper {
     const val SHIZUKU_PERMISSION_REQUEST_CODE = 1001
     const val TARGET_GAME_FILES_DIR = "/storage/emulated/0/Android/data/com.grandmobile.game/files"
 
-    /**
-     * Проверяет активность сервиса Shizuku и наличие выданного разрешения.
-     */
     fun checkStatus(): ShizukuState {
         return try {
             if (!Shizuku.pingBinder()) {
@@ -34,9 +31,6 @@ object ShizukuHelper {
         }
     }
 
-    /**
-     * Запрашивает разрешение у пользователя через системное окно Shizuku.
-     */
     fun requestPermissionIfNeeded(): Boolean {
         return try {
             if (!Shizuku.pingBinder()) {
@@ -52,11 +46,6 @@ object ShizukuHelper {
         }
     }
 
-    /**
-     * Выполняет горячую подмену папок (data, texdb, audio) из выбранного пресета
-     * в защищенную директорию /storage/emulated/0/Android/data/com.grandmobile.game/files/
-     * через привилегированный Shizuku Binder процесс (UID 2000 / shell).
-     */
     suspend fun hotSwapModFolders(sourcePresetDir: File): Result<Int> = withContext(Dispatchers.IO) {
         try {
             if (checkStatus() != ShizukuState.ACTIVE_GRANTED) {
@@ -77,12 +66,12 @@ object ShizukuHelper {
             val srcPath = sourcePresetDir.absolutePath
             val dstPath = TARGET_GAME_FILES_DIR
 
-            // Формируем shell-команду для мгновенного копирования через привилегированный контекст Shizuku (shell UID 2000)
             val copyCommands = buildString {
-                append("mkdir -p "$dstPath" && ")
+                append("mkdir -p '").append(dstPath).append("' && ")
                 existingFolders.forEachIndexed { idx, folder ->
                     if (idx > 0) append(" && ")
-                    append("cp -rf "$srcPath/${folder.name}" "$dstPath/"")
+                    append("cp -rf '").append(srcPath).append("/").append(folder.name)
+                    append("' '").append(dstPath).append("/'")
                 }
             }
 
@@ -97,9 +86,6 @@ object ShizukuHelper {
         }
     }
 
-    /**
-     * Запускает привилегированный процесс через Shizuku Binder (Shizuku.newProcess).
-     */
     @Suppress("DEPRECATION")
     private fun execShizukuCommand(cmd: Array<String>): Int {
         val newProcessMethod = Shizuku::class.java.getDeclaredMethod(
