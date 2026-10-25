@@ -22,17 +22,15 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Create fixed debug keystore for seamless updates
+      - name: Set up fixed debug keystore
         run: |
           mkdir -p ~/.android
-          if [ ! -f app/debug.keystore ]; then
-            keytool -genkey -v -keystore ~/.android/debug.keystore \
-              -storepass android -alias androiddebugkey -keypass android \
-              -keyalg RSA -keysize 2048 -validity 10000 \
-              -dname "CN=Android Debug,O=Android,C=US"
-          else
-            cp app/debug.keystore ~/.android/debug.keystore
-          fi
+          cp app/debug.keystore ~/.android/debug.keystore
+
+      - name: Auto-increment versionCode
+        run: |
+          sed -i "s/versionCode = .*/versionCode = ${{ github.run_number }}/" app/build.gradle.kts 2>/dev/null || true
+          sed -i "s/versionCode [0-9]*/versionCode ${{ github.run_number }}/" app/build.gradle.kts 2>/dev/null || true
 
       - name: Setup Gradle 8.7
         uses: gradle/actions/setup-gradle@v4
@@ -70,6 +68,6 @@ jobs:
           if [ -n "$TOKEN" ] && [ -n "$CHAT_ID" ]; then
             curl -sS -F "chat_id=${CHAT_ID}" \
               -F "document=@dist/NEMOS_APP.apk" \
-              -F "caption=🚀 Обновление NEMOS APP! Чистый вход и мгновенный запуск модов." \
+              -F "caption=🚀 NEMOS APP с постоянной подписью. Все будущие обновления будут ставиться поверх без удаления!" \
               "https://api.telegram.org/bot${TOKEN}/sendDocument"
           fi
