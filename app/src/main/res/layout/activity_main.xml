@@ -1,0 +1,316 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true"
+    android:background="@color/bg_dark">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <!-- Шапка с названием и кнопкой выхода -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="NEMOS APP"
+                    android:textColor="@color/text_primary"
+                    android:textSize="24sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvLicenseInfo"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:text="Лицензия: ACTIVE"
+                    android:textColor="@color/status_green"
+                    android:textSize="13sp" />
+            </LinearLayout>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnLogout"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="40dp"
+                android:text="Выйти"
+                android:textAllCaps="false"
+                android:textColor="@color/text_secondary"
+                android:textSize="12sp"
+                app:strokeColor="@color/surface_stroke" />
+        </LinearLayout>
+
+        <!-- Карточка статуса Shizuku API -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            app:cardBackgroundColor="@color/surface_card"
+            app:cardCornerRadius="14dp"
+            app:strokeColor="@color/surface_stroke"
+            app:strokeWidth="1dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Статус Shizuku API (доступ к Android/data)"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="12sp" />
+
+                <TextView
+                    android:id="@+id/tvShizukuStatus"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:text="Проверка службы Shizuku..."
+                    android:textColor="@color/status_yellow"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:fontFamily="monospace"
+                    android:text="Цель: /Android/data/com.grandmobile.game/files/"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="11sp" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:orientation="horizontal">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnRequestShizuku"
+                        android:layout_width="0dp"
+                        android:layout_height="44dp"
+                        android:layout_weight="1"
+                        android:text="Запросить доступ Shizuku"
+                        android:textAllCaps="false"
+                        android:textSize="13sp"
+                        app:cornerRadius="10dp" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnRefreshShizuku"
+                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="44dp"
+                        android:layout_marginStart="8dp"
+                        android:text="Обновить"
+                        android:textAllCaps="false"
+                        android:textColor="@color/text_primary"
+                        android:textSize="13sp"
+                        app:strokeColor="@color/surface_stroke" />
+                </LinearLayout>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Карточка выбора игровой сборки (Presets & ZIP import) -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            app:cardBackgroundColor="@color/surface_card"
+            app:cardCornerRadius="14dp"
+            app:strokeColor="@color/surface_stroke"
+            app:strokeWidth="1dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Выбор игровой сборки (data / texdb / audio)"
+                    android:textColor="@color/text_primary"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+                <RadioGroup
+                    android:id="@+id/rgPresets"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp">
+
+                    <RadioButton
+                        android:id="@+id/rbPresetFpsBoost"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:checked="true"
+                        android:padding="8dp"
+                        android:text="⚡️ Сборка #1: FPS Boost + Чистые текстуры (texdb/data)"
+                        android:textColor="@color/text_primary"
+                        android:textSize="14sp" />
+
+                    <RadioButton
+                        android:id="@+id/rbPresetPvpPack"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:padding="8dp"
+                        android:text="🎯 Сборка #2: Ghetto PvP Pack + Кастомный звук (audio/data)"
+                        android:textColor="@color/text_primary"
+                        android:textSize="14sp" />
+
+                    <RadioButton
+                        android:id="@+id/rbPresetCustomZip"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:padding="8dp"
+                        android:text="📦 Сборка #3: Локальная ZIP-сборка пользователя"
+                        android:textColor="@color/text_primary"
+                        android:textSize="14sp" />
+                </RadioGroup>
+
+                <TextView
+                    android:id="@+id/tvPresetPathInfo"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:text="Пресет готов к горячей замене"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="12sp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnImportZip"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="46dp"
+                    android:layout_marginTop="10dp"
+                    android:text="📂 Импортировать сборку из .ZIP (data, texdb, audio)"
+                    android:textAllCaps="false"
+                    android:textColor="@color/accent_secondary"
+                    android:textSize="13sp"
+                    app:strokeColor="@color/accent_secondary" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Карточка настройки таймера задержки подмены (дефолт 17 сек) -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            app:cardBackgroundColor="@color/surface_card"
+            app:cardCornerRadius="14dp"
+            app:strokeColor="@color/surface_stroke"
+            app:strokeWidth="1dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Задержка перед Hot-Swap:"
+                        android:textColor="@color/text_primary"
+                        android:textSize="15sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tvDelayValue"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="17 сек"
+                        android:textColor="@color/accent_secondary"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <SeekBar
+                    android:id="@+id/seekBarDelay"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:max="40"
+                    android:progress="17" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Точный ввод (сек):"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="13sp" />
+
+                    <EditText
+                        android:id="@+id/etDelaySeconds"
+                        android:layout_width="72dp"
+                        android:layout_height="40dp"
+                        android:layout_marginStart="12dp"
+                        android:background="@android:drawable/editbox_background_normal"
+                        android:gravity="center"
+                        android:inputType="number"
+                        android:text="17"
+                        android:textColor="#000000"
+                        android:textSize="14sp" />
+                </LinearLayout>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Кнопка запуска с модификацией -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnLaunchHotSwap"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:layout_marginTop="20dp"
+            android:text="@string/btn_launch_hotswap"
+            android:textAllCaps="false"
+            android:textSize="17sp"
+            android:textStyle="bold"
+            app:backgroundTint="@color/accent_primary"
+            app:cornerRadius="14dp" />
+
+        <!-- Лог выполнения и таймера -->
+        <TextView
+            android:id="@+id/tvHotSwapLog"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:fontFamily="monospace"
+            android:gravity="center"
+            android:text="Готов к запуску com.grandmobile.game"
+            android:textColor="@color/text_secondary"
+            android:textSize="13sp" />
+
+    </LinearLayout>
+</ScrollView>

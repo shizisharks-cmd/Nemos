@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">NEMOS APP</string>
+    <string name="auth_subtitle">Лицензионный мод-менеджер и Hot-Swap лаунчер для Grand Mobile</string>
+    <string name="hint_license_key">Ключ (например, GRND-A1B2-C3D4)</string>
+    <string name="hint_server_url">URL сервера лицензий (Wispbyte)</string>
+    <string name="btn_verify_login">Активировать и войти</string>
+    <string name="btn_launch_hotswap">🚀 Запустить с модификацией</string>
+</resources>
