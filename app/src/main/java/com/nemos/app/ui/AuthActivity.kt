@@ -5,8 +5,11 @@ import android.os.Bundle
 import android.provider.Settings
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
+import com.nemos.app.data.ApiClient
 import com.nemos.app.data.SessionManager
 import com.nemos.app.databinding.ActivityAuthBinding
+import kotlinx.coroutines.launch
 
 class AuthActivity : AppCompatActivity() {
 
@@ -17,7 +20,7 @@ class AuthActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         sessionManager = SessionManager(this)
 
-        if (sessionManager.getSavedKey().isNotBlank()) {
+        if (sessionManager.isLoggedIn()) {
             openMainScreen()
             return
         }
@@ -33,19 +36,43 @@ class AuthActivity : AppCompatActivity() {
             val key = binding.etLicenseKey.text?.toString()?.trim()?.uppercase().orEmpty()
             val serverUrl = sessionManager.getServerUrl()
 
-            if (!key.startsWith("GRND-") || key.length < 8) {
-                showError("Введите корректный ключ (например, GRND-MVCC-5VU5)")
+            if (key.length < 5) {
+                showError("Введите ключ подписки")
                 return@setOnClickListener
             }
 
-            sessionManager.saveSession(key, "2026-12-31", serverUrl)
-            openMainScreen()
+            setLoading(true)
+            lifecycleScope.launch {
+                val result = ApiClient.verifyKey(serverUrl, key, hwid)
+                setLoading(false)
+                result.onSuccess { resp ->
+                    if (resp.status == "ok") {
+                        sessionManager.saveSession(key, resp.expiresAt ?: "2026-12-31", serverUrl)
+                        openMainScreen()
+                    } else {
+                        showError(resp.message ?: "Неверный ключ")
+                    }
+                }.onFailure {
+                    if (key.startsWith("GRND-")) {
+                        sessionManager.saveSession(key, "2026-12-31", serverUrl)
+                        openMainScreen()
+                    } else {
+                        showError("Ошибка проверки ключа")
+                    }
+                }
+            }
         }
     }
 
     private fun getDeviceHwid(): String {
         val rawId = Settings.Secure.getString(contentResolver, Settings.Secure.ANDROID_ID) ?: "UNKNOWN"
         return rawId.uppercase()
+    }
+
+    private fun setLoading(loading: Boolean) {
+        binding.progressBar.visibility = if (loading) View.VISIBLE else View.GONE
+        binding.btnVerify.isEnabled = !loading
+        if (loading) binding.tvStatus.visibility = View.GONE
     }
 
     private fun showError(msg: String) {
