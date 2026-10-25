@@ -2,21 +2,21 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- Сетевой доступ для проверки лицензионного ключа на бэкенде Wispbyte -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-
-    <!-- Фоновая служба для таймера горячей подмены (Hot-Swap) -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
-    <!-- Разрешаем приложению видеть пакет игры Grand Mobile и менеджер Shizuku на Android 11+ -->
     <queries>
         <package android:name="com.grandmobile.game" />
         <package android:name="com.grand.launcher" />
         <package android:name="com.grand.cr" />
         <package android:name="moe.shizuku.privileged.api" />
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
     </queries>
 
     <application
@@ -27,7 +27,6 @@
         android:theme="@style/Theme.NemosApp"
         tools:targetApi="34">
 
-        <!-- Провайдер Shizuku API для взаимодействия с системным сервисом -->
         <provider
             android:name="rikka.shizuku.ShizukuProvider"
             android:authorities="${applicationId}.shizuku"
@@ -36,7 +35,6 @@
             android:multiprocess="false"
             android:permission="android.permission.INTERACT_ACROSS_USERS_FULL" />
 
-        <!-- Экран 1: Авторизация по ключу GRND-XXXX-XXXX и привязка HWID -->
         <activity
             android:name=".ui.AuthActivity"
             android:exported="true"
@@ -47,12 +45,10 @@
             </intent-filter>
         </activity>
 
-        <!-- Экран 2: Главное меню, статус Shizuku, выбор сборок и запуск Hot-Swap -->
         <activity
             android:name=".ui.MainActivity"
             android:exported="false" />
 
-        <!-- Фоновый сервис отсчета таймера и горячей замены файлов через Shizuku -->
         <service
             android:name=".service.HotSwapService"
             android:enabled="true"

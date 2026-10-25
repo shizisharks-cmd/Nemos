@@ -12,7 +12,6 @@
         android:orientation="vertical"
         android:padding="20dp">
 
-        <!-- Шапка с названием и кнопкой выхода -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -28,9 +27,9 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="NEMOS APP"
+                    android:text="⚡ NEMOS MODS"
                     android:textColor="@color/text_primary"
-                    android:textSize="24sp"
+                    android:textSize="26sp"
                     android:textStyle="bold" />
 
                 <TextView
@@ -38,9 +37,10 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="2dp"
-                    android:text="Лицензия: ACTIVE"
-                    android:textColor="@color/status_green"
-                    android:textSize="13sp" />
+                    android:text="Подписка активна"
+                    android:textColor="@color/accent_secondary"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
             </LinearLayout>
 
             <com.google.android.material.button.MaterialButton
@@ -52,16 +52,142 @@
                 android:textAllCaps="false"
                 android:textColor="@color/text_secondary"
                 android:textSize="12sp"
+                app:cornerRadius="12dp"
                 app:strokeColor="@color/surface_stroke" />
         </LinearLayout>
 
-        <!-- Карточка статуса Shizuku API -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:text="ВЫБЕРИ СБОРКУ"
+            android:textColor="@color/accent_neon"
+            android:textSize="13sp"
+            android:letterSpacing="0.08"
+            android:textStyle="bold" />
+
+        <!-- 1) FPS Boost -->
         <com.google.android.material.card.MaterialCardView
+            android:id="@+id/cardPresetFps"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
+            android:layout_marginTop="12dp"
+            android:clickable="true"
+            android:focusable="true"
+            app:cardBackgroundColor="@color/surface_card_selected"
+            app:cardCornerRadius="20dp"
+            app:cardElevation="6dp"
+            app:strokeColor="@color/accent_neon"
+            app:strokeWidth="2dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:padding="18dp">
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="⚡ FPS Boost"
+                        android:textColor="@color/text_primary"
+                        android:textSize="19sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:text="Для слабых телефонов"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="13sp" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/tvBadgeFps"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="✓ ВЫБРАНО"
+                    android:textColor="@color/accent_secondary"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- 2) Ghetto Pack -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/cardPresetGhetto"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:clickable="true"
+            android:focusable="true"
             app:cardBackgroundColor="@color/surface_card"
-            app:cardCornerRadius="14dp"
+            app:cardCornerRadius="20dp"
+            app:cardElevation="4dp"
+            app:strokeColor="@color/surface_stroke"
+            app:strokeWidth="1dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:padding="18dp">
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="🎯 Ghetto Pack"
+                        android:textColor="@color/text_primary"
+                        android:textSize="19sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:text="Звуки и эффекты стрельбы"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="13sp" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/tvBadgeGhetto"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="✓ ВЫБРАНО"
+                    android:textColor="@color/accent_secondary"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:visibility="gone" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- 3) Своя сборка (.ZIP) -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/cardPresetZip"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:clickable="true"
+            android:focusable="true"
+            app:cardBackgroundColor="@color/surface_card"
+            app:cardCornerRadius="20dp"
+            app:cardElevation="4dp"
             app:strokeColor="@color/surface_stroke"
             app:strokeWidth="1dp">
 
@@ -69,248 +195,286 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="16dp">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Статус Shizuku API (доступ к Android/data)"
-                    android:textColor="@color/text_secondary"
-                    android:textSize="12sp" />
-
-                <TextView
-                    android:id="@+id/tvShizukuStatus"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="6dp"
-                    android:text="Проверка службы Shizuku..."
-                    android:textColor="@color/status_yellow"
-                    android:textSize="15sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:fontFamily="monospace"
-                    android:text="Цель: /Android/data/com.grandmobile.game/files/"
-                    android:textColor="@color/text_secondary"
-                    android:textSize="11sp" />
+                android:padding="18dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
+                    android:gravity="center_vertical"
                     android:orientation="horizontal">
 
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnRequestShizuku"
+                    <LinearLayout
                         android:layout_width="0dp"
-                        android:layout_height="44dp"
+                        android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="Запросить доступ Shizuku"
-                        android:textAllCaps="false"
-                        android:textSize="13sp"
-                        app:cornerRadius="10dp" />
+                        android:orientation="vertical">
 
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnRefreshShizuku"
-                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="📦 Своя сборка (.ZIP)"
+                            android:textColor="@color/text_primary"
+                            android:textSize="19sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tvPresetPathInfo"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:text="Загрузи свой архив с модами"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="13sp" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/tvBadgeZip"
                         android:layout_width="wrap_content"
-                        android:layout_height="44dp"
-                        android:layout_marginStart="8dp"
-                        android:text="Обновить"
-                        android:textAllCaps="false"
-                        android:textColor="@color/text_primary"
-                        android:textSize="13sp"
-                        app:strokeColor="@color/surface_stroke" />
+                        android:layout_height="wrap_content"
+                        android:text="✓ ВЫБРАНО"
+                        android:textColor="@color/accent_secondary"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        android:visibility="gone" />
                 </LinearLayout>
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-
-        <!-- Карточка выбора игровой сборки (Presets & ZIP import) -->
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            app:cardBackgroundColor="@color/surface_card"
-            app:cardCornerRadius="14dp"
-            app:strokeColor="@color/surface_stroke"
-            app:strokeWidth="1dp">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="16dp">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Выбор игровой сборки (data / texdb / audio)"
-                    android:textColor="@color/text_primary"
-                    android:textSize="16sp"
-                    android:textStyle="bold" />
-
-                <RadioGroup
-                    android:id="@+id/rgPresets"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="10dp">
-
-                    <RadioButton
-                        android:id="@+id/rbPresetFpsBoost"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:checked="true"
-                        android:padding="8dp"
-                        android:text="⚡️ Сборка #1: FPS Boost + Чистые текстуры (texdb/data)"
-                        android:textColor="@color/text_primary"
-                        android:textSize="14sp" />
-
-                    <RadioButton
-                        android:id="@+id/rbPresetPvpPack"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:padding="8dp"
-                        android:text="🎯 Сборка #2: Ghetto PvP Pack + Кастомный звук (audio/data)"
-                        android:textColor="@color/text_primary"
-                        android:textSize="14sp" />
-
-                    <RadioButton
-                        android:id="@+id/rbPresetCustomZip"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:padding="8dp"
-                        android:text="📦 Сборка #3: Локальная ZIP-сборка пользователя"
-                        android:textColor="@color/text_primary"
-                        android:textSize="14sp" />
-                </RadioGroup>
-
-                <TextView
-                    android:id="@+id/tvPresetPathInfo"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="6dp"
-                    android:text="Пресет готов к горячей замене"
-                    android:textColor="@color/text_secondary"
-                    android:textSize="12sp" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnImportZip"
                     style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                     android:layout_width="match_parent"
                     android:layout_height="46dp"
-                    android:layout_marginTop="10dp"
-                    android:text="📂 Импортировать сборку из .ZIP (data, texdb, audio)"
+                    android:layout_marginTop="12dp"
+                    android:text="📂 Выбрать .ZIP архив"
                     android:textAllCaps="false"
-                    android:textColor="@color/accent_secondary"
-                    android:textSize="13sp"
-                    app:strokeColor="@color/accent_secondary" />
+                    android:textColor="@color/accent_neon"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    app:cornerRadius="14dp"
+                    app:strokeColor="@color/accent_primary" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- Карточка настройки таймера задержки подмены (дефолт 17 сек) -->
+        <!-- КНОПКА ЗАПУСКА -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnLaunchHotSwap"
+            android:layout_width="match_parent"
+            android:layout_height="66dp"
+            android:layout_marginTop="24dp"
+            android:text="@string/btn_launch_hotswap"
+            android:textAllCaps="false"
+            android:textColor="@color/text_primary"
+            android:textSize="19sp"
+            android:textStyle="bold"
+            app:backgroundTint="@color/accent_primary"
+            app:cornerRadius="20dp"
+            app:elevation="8dp" />
+
+        <TextView
+            android:id="@+id/tvHotSwapLog"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:gravity="center"
+            android:text="Выбери сборку и нажми «Играть с модами»"
+            android:textColor="@color/text_secondary"
+            android:textSize="13sp" />
+
+        <!-- Настройки (спойлер) -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
+            android:layout_marginTop="18dp"
             app:cardBackgroundColor="@color/surface_card"
-            app:cardCornerRadius="14dp"
+            app:cardCornerRadius="18dp"
             app:strokeColor="@color/surface_stroke"
             app:strokeWidth="1dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="16dp">
+                android:orientation="vertical">
 
                 <LinearLayout
+                    android:id="@+id/layoutSettingsHeader"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal">
+                    android:background="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:padding="16dp">
 
                     <TextView
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="Задержка перед Hot-Swap:"
+                        android:text="⚙️ Настройки"
                         android:textColor="@color/text_primary"
                         android:textSize="15sp"
                         android:textStyle="bold" />
 
                     <TextView
-                        android:id="@+id/tvDelayValue"
+                        android:id="@+id/tvSettingsArrow"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="17 сек"
-                        android:textColor="@color/accent_secondary"
-                        android:textSize="16sp"
+                        android:text="Показать ▼"
+                        android:textColor="@color/accent_neon"
+                        android:textSize="13sp"
                         android:textStyle="bold" />
                 </LinearLayout>
 
-                <SeekBar
-                    android:id="@+id/seekBarDelay"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
-                    android:max="40"
-                    android:progress="17" />
-
                 <LinearLayout
+                    android:id="@+id/layoutSettingsContent"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal">
+                    android:orientation="vertical"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp"
+                    android:paddingBottom="16dp"
+                    android:visibility="gone">
 
-                    <TextView
-                        android:layout_width="wrap_content"
+                    <LinearLayout
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Точный ввод (сек):"
-                        android:textColor="@color/text_secondary"
-                        android:textSize="13sp" />
+                        android:orientation="horizontal">
 
-                    <EditText
-                        android:id="@+id/etDelaySeconds"
-                        android:layout_width="72dp"
-                        android:layout_height="40dp"
-                        android:layout_marginStart="12dp"
-                        android:background="@android:drawable/editbox_background_normal"
-                        android:gravity="center"
-                        android:inputType="number"
-                        android:text="17"
-                        android:textColor="#000000"
-                        android:textSize="14sp" />
-                </LinearLayout>
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Задержка включения модов:"
+                            android:textColor="@color/text_primary"
+                            android:textSize="14sp" />
 
-        <!-- Кнопка запуска с модификацией -->
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnLaunchHotSwap"
-            android:layout_width="match_parent"
-            android:layout_height="60dp"
-            android:layout_marginTop="20dp"
-            android:text="@string/btn_launch_hotswap"
-            android:textAllCaps="false"
-            android:textSize="17sp"
-            android:textStyle="bold"
-            app:backgroundTint="@color/accent_primary"
-            app:cornerRadius="14dp" />
+                        <TextView
+                            android:id="@+id/tvDelayValue"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="17 сек"
+                            android:textColor="@color/accent_secondary"
+                            android:textSize="15sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
 
-        <!-- Лог выполнения и таймера -->
-        <TextView
-            android:id="@+id/tvHotSwapLog"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="14dp"
-            android:fontFamily="monospace"
-            android:gravity="center"
-            android:text="Готов к запуску com.grandmobile.game"
-            android:textColor="@color/text_secondary"
-            android:textSize="13sp" />
+                    <SeekBar
+                        android:id="@+id/seekBarDelay"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:max="40"
+                        android:progress="17" />
 
-    </LinearLayout>
-</ScrollView>
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Точное время (сек):"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="13sp" />
+
+                        <EditText
+                            android:id="@+id/etDelaySeconds"
+                            android:layout_width="72dp"
+                            android:layout_height="40dp"
+                            android:layout_marginStart="12dp"
+                            android:background="@android:drawable/editbox_background_normal"
+                            android:gravity="center"
+                            android:inputType="number"
+                            android:text="17"
+                            android:textColor="#000000"
+                            android:textSize
+mkdir -p app/src/main/java/com/nemos/app/data app/src/main/java/com/nemos/app/shizuku app/src/main/java/com/nemos/app/service
+
+cat << 'EOF' > app/src/main/java/com/nemos/app/data/PresetRepository.kt
+package com.nemos.app.data
+
+import android.content.Context
+import android.net.Uri
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import java.io.File
+import java.io.FileOutputStream
+import java.util.zip.ZipInputStream
+
+object PresetRepository {
+
+    private val ALLOWED_ROOT_FOLDERS = setOf("data", "texdb", "audio")
+
+    fun getPresetDirectory(context: Context, presetId: String): File {
+        val baseDir = context.getExternalFilesDir(null) ?: context.filesDir
+        return File(baseDir, "presets/$presetId")
+    }
+
+    suspend fun ensureBuiltInPresetsReady(context: Context) = withContext(Dispatchers.IO) {
+        listOf("fps_boost", "pvp_pack", "custom_zip").forEach { presetId ->
+            val presetDir = getPresetDirectory(context, presetId)
+            ALLOWED_ROOT_FOLDERS.forEach { folderName ->
+                val subDir = File(presetDir, folderName)
+                if (!subDir.exists()) {
+                    subDir.mkdirs()
+                }
+            }
+            val marker = File(presetDir, "data/nemos_preset_info.txt")
+            if (!marker.exists()) {
+                marker.writeText("NEMOS APP Preset: $presetId\n")
+            }
+        }
+    }
+
+    suspend fun importZipPreset(context: Context, zipUri: Uri): Result<Int> = withContext(Dispatchers.IO) {
+        try {
+            val targetDir = getPresetDirectory(context, "custom_zip")
+            if (targetDir.exists()) {
+                targetDir.deleteRecursively()
+            }
+            targetDir.mkdirs()
+
+            var extractedFilesCount = 0
+            val resolver = context.contentResolver
+
+            resolver.openInputStream(zipUri)?.use { inputStream ->
+                ZipInputStream(inputStream).use { zis ->
+                    var entry = zis.nextEntry
+                    while (entry != null) {
+                        if (!entry.isDirectory) {
+                            val normalized = entry.name.replace("\\", "/").trimStart('/')
+                            val parts = normalized.split("/")
+                            val folderIndex = parts.indexOfFirst { it.lowercase() in ALLOWED_ROOT_FOLDERS }
+                            val relPath = if (folderIndex != -1 && folderIndex < parts.size - 1) {
+                                parts.subList(folderIndex, parts.size).joinToString("/")
+                            } else {
+                                "data/" + parts.last()
+                            }
+                            val outFile = File(targetDir, relPath).canonicalFile
+                            if (outFile.path.startsWith(targetDir.canonicalPath)) {
+                                outFile.parentFile?.mkdirs()
+                                FileOutputStream(outFile).use { fos ->
+                                    zis.copyTo(fos)
+                                }
+                                extractedFilesCount++
+                            }
+                        }
+                        zis.closeEntry()
+                        entry = zis.nextEntry
+                    }
+                }
+            }
+
+            if (extractedFilesCount == 0) {
+                ensureBuiltInPresetsReady(context)
+                Result.failure(IllegalArgumentException("Архив пуст или поврежден."))
+            } else {
+                Result.success(extractedFilesCount)
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+}

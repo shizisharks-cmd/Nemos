@@ -10,7 +10,6 @@ import android.os.Build
 import android.os.IBinder
 import android.widget.Toast
 import androidx.core.app.NotificationCompat
-import com.nemos.app.R
 import com.nemos.app.data.PresetRepository
 import com.nemos.app.shizuku.ShizukuHelper
 import kotlinx.coroutines.CoroutineScope
@@ -36,29 +35,29 @@ class HotSwapService : Service() {
         val delaySeconds = intent?.getIntExtra(EXTRA_DELAY_SECONDS, 17) ?: 17
         val presetId = intent?.getStringExtra(EXTRA_PRESET_ID) ?: "fps_boost"
 
-        startForeground(NOTIFICATION_ID, buildNotification("Таймер Hot-Swap: $delaySeconds сек..."))
+        startForeground(NOTIFICATION_ID, buildNotification("Загрузка модов через $delaySeconds сек..."))
 
         countdownJob?.cancel()
         countdownJob = serviceScope.launch {
             for (remaining in delaySeconds downTo 1) {
-                updateNotification("До горячей подмены файлов: $remaining сек...")
-                sendBroadcastStatus("⏳ Обратный отсчет Hot-Swap: $remaining сек...")
+                updateNotification("Включаем моды через $remaining сек...")
+                sendBroadcastStatus("⏳ Моды включатся через $remaining сек...")
                 delay(1_000L)
             }
 
-            updateNotification("Копирование data, texdb, audio через Shizuku...")
-            sendBroadcastStatus("⚡️ Выполняется подмена файлов в com.grandmobile.game...")
+            updateNotification("Активация выбранной сборки...")
+            sendBroadcastStatus("⚡ Применяем моды к Grand Mobile...")
 
             val presetDir = PresetRepository.getPresetDirectory(applicationContext, presetId)
             val result = ShizukuHelper.hotSwapModFolders(presetDir)
 
             withContext(Dispatchers.Main) {
-                result.onSuccess { count ->
-                    val msg = "✅ Модификация успешно применена ($count папок перезаписано)!"
+                result.onSuccess {
+                    val msg = "✅ Моды успешно включены! Приятной игры!"
                     Toast.makeText(applicationContext, msg, Toast.LENGTH_LONG).show()
                     sendBroadcastStatus(msg)
                 }.onFailure { err ->
-                    val msg = "❌ Ошибка Hot-Swap: ${err.localizedMessage}"
+                    val msg = "❌ Не удалось включить моды: ${err.localizedMessage}"
                     Toast.makeText(applicationContext, msg, Toast.LENGTH_LONG).show()
                     sendBroadcastStatus(msg)
                 }
@@ -82,10 +81,10 @@ class HotSwapService : Service() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 CHANNEL_ID,
-                "NEMOS Hot-Swap Engine",
+                "NEMOS Mods",
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
-                description = "Обратный отсчет и горячая замена файлов Grand Mobile"
+                description = "Активация модов для Grand Mobile"
             }
             val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             nm.createNotificationChannel(channel)
@@ -95,7 +94,7 @@ class HotSwapService : Service() {
     private fun buildNotification(contentText: String): Notification {
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.stat_sys_upload)
-            .setContentTitle("NEMOS APP • Hot-Swap Engine")
+            .setContentTitle("NEMOS APP • Моды для Grand Mobile")
             .setContentText(contentText)
             .setOngoing(true)
             .setOnlyAlertOnce(true)

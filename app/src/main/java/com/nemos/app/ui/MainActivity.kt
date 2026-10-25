@@ -9,13 +9,13 @@ import android.os.Build
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
+import android.view.View
 import android.widget.SeekBar
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
-import com.nemos.app.BuildConfig
 import com.nemos.app.R
 import com.nemos.app.data.PresetRepository
 import com.nemos.app.data.SessionManager
@@ -31,14 +31,20 @@ class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private lateinit var sessionManager: SessionManager
 
+    private val gamePackages = listOf(
+        "com.grandmobile.game",
+        "com.grand.launcher",
+        "com.grand.cr"
+    )
+
     private val shizukuPermissionListener =
         Shizuku.OnRequestPermissionResultListener { requestCode, grantResult ->
             if (requestCode == ShizukuHelper.SHIZUKU_PERMISSION_REQUEST_CODE) {
                 refreshShizukuStatusUi()
                 if (grantResult == PackageManager.PERMISSION_GRANTED) {
-                    Toast.makeText(this, "✅ Доступ Shizuku предоставлен!", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, "✅ Доступ Shizuku включен!", Toast.LENGTH_SHORT).show()
                 } else {
-                    Toast.makeText(this, "❌ В разрешении Shizuku отказано.", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, "❌ Доступ Shizuku не выдан.", Toast.LENGTH_SHORT).show()
                 }
             }
         }
@@ -61,21 +67,19 @@ class MainActivity : AppCompatActivity() {
     private val zipPickerLauncher =
         registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
             if (uri != null) {
-                binding.tvPresetPathInfo.text = "⏳ Распаковка ZIP-архива сборки..."
+                binding.tvPresetPathInfo.text = "⏳ Загружаем твою сборку..."
                 lifecycleScope.launch {
                     val result = PresetRepository.importZipPreset(this@MainActivity, uri)
                     result.onSuccess { count ->
-                        binding.rbPresetCustomZip.isChecked = true
-                        sessionManager.setSelectedPresetId("custom_zip")
-                        binding.tvPresetPathInfo.text =
-                            "✅ Импортировано файлов: $count (папки data/texdb/audio готовы)"
+                        selectPresetCard("custom_zip")
+                        binding.tvPresetPathInfo.text = "✅ Своя сборка загружена ($count файлов)"
                         Toast.makeText(
                             this@MainActivity,
-                            "Сборка успешно импортирована ($count файлов)",
+                            "✅ Своя сборка готова к игре!",
                             Toast.LENGTH_LONG
                         ).show()
                     }.onFailure { err ->
-                        binding.tvPresetPathInfo.text = "❌ Ошибка импорта: ${err.localizedMessage}"
+                        binding.tvPresetPathInfo.text = "❌ Не удалось загрузить архив"
                         Toast.makeText(
                             this@MainActivity,
                             err.localizedMessage ?: "Ошибка чтения архива",
@@ -100,12 +104,12 @@ class MainActivity : AppCompatActivity() {
             PresetRepository.ensureBuiltInPresetsReady(this@MainActivity)
         }
 
-        // Регистрируем слушатели Shizuku
         Shizuku.addRequestPermissionResultListener(shizukuPermissionListener)
         Shizuku.addBinderReceivedListenerSticky(shizukuBinderReceivedListener)
         Shizuku.addBinderDeadListener(shizukuBinderDeadListener)
 
-        setupPresetsSelection()
+        setupPresetCards()
+        setupSettingsSpoiler()
         setupDelayControls()
         setupButtons()
         refreshShizukuStatusUi()
@@ -140,43 +144,81 @@ class MainActivity : AppCompatActivity() {
     private fun refreshShizukuStatusUi() {
         when (ShizukuHelper.checkStatus()) {
             ShizukuState.ACTIVE_GRANTED -> {
-                binding.tvShizukuStatus.text = "🟢 Активен (Доступ к Android/data предоставлен)"
+                binding.tvShizukuStatus.text = "🟢 Shizuku подключен и готов"
                 binding.tvShizukuStatus.setTextColor(ContextCompat.getColor(this, R.color.status_green))
                 binding.btnRequestShizuku.isEnabled = false
-                binding.btnRequestShizuku.text = "Shizuku подключен"
+                binding.btnRequestShizuku.text = "Shizuku активен"
             }
             ShizukuState.RUNNING_NO_PERMISSION -> {
-                binding.tvShizukuStatus.text = "🟡 Служба запущена (Требуется разрешение)"
+                binding.tvShizukuStatus.text = "🟡 Нажми «Разрешить Shizuku»"
                 binding.tvShizukuStatus.setTextColor(ContextCompat.getColor(this, R.color.status_yellow))
                 binding.btnRequestShizuku.isEnabled = true
-                binding.btnRequestShizuku.text = "Разрешить доступ Shizuku"
+                binding.btnRequestShizuku.text = "Разрешить Shizuku"
             }
             ShizukuState.NOT_RUNNING -> {
-                binding.tvShizukuStatus.text = "🔴 Не запущен (Запустите Shizuku перед игрой)"
+                binding.tvShizukuStatus.text = "🔴 Включи приложение Shizuku"
                 binding.tvShizukuStatus.setTextColor(ContextCompat.getColor(this, R.color.status_red))
                 binding.btnRequestShizuku.isEnabled = true
-                binding.btnRequestShizuku.text = "Запросить доступ Shizuku"
+                binding.btnRequestShizuku.text = "Подключить Shizuku"
             }
         }
     }
 
-    private fun setupPresetsSelection() {
-        when (sessionManager.getSelectedPresetId()) {
-            "fps_boost" -> binding.rbPresetFpsBoost.isChecked = true
-            "pvp_pack" -> binding.rbPresetPvpPack.isChecked = true
-            "custom_zip" -> binding.rbPresetCustomZip.isChecked = true
-        }
+    private fun setupPresetCards() {
+        selectPresetCard(sessionManager.getSelectedPresetId())
 
-        binding.rgPresets.setOnCheckedChangeListener { _, checkedId ->
-            val presetId = when (checkedId) {
-                R.id.rbPresetFpsBoost -> "fps_boost"
-                R.id.rbPresetPvpPack -> "pvp_pack"
-                R.id.rbPresetCustomZip -> "custom_zip"
-                else -> "fps_boost"
+        binding.cardPresetFps.setOnClickListener {
+            selectPresetCard("fps_boost")
+        }
+        binding.cardPresetGhetto.setOnClickListener {
+            selectPresetCard("pvp_pack")
+        }
+        binding.cardPresetZip.setOnClickListener {
+            selectPresetCard("custom_zip")
+        }
+    }
+
+    private fun selectPresetCard(presetId: String) {
+        sessionManager.setSelectedPresetId(presetId)
+
+        val selectedBg = ContextCompat.getColor(this, R.color.surface_card_selected)
+        val normalBg = ContextCompat.getColor(this, R.color.surface_card)
+        val neonStroke = ContextCompat.getColor(this, R.color.accent_neon)
+        val normalStroke = ContextCompat.getColor(this, R.color.surface_stroke)
+
+        val d = resources.displayMetrics.density
+        val strokeSelected = (2 * d).toInt()
+        val strokeNormal = (1 * d).toInt()
+
+        val isFps = presetId == "fps_boost"
+        binding.cardPresetFps.setCardBackgroundColor(if (isFps) selectedBg else normalBg)
+        binding.cardPresetFps.strokeColor = if (isFps) neonStroke else normalStroke
+        binding.cardPresetFps.strokeWidth = if (isFps) strokeSelected else strokeNormal
+        binding.tvBadgeFps.visibility = if (isFps) View.VISIBLE else View.GONE
+
+        val isGhetto = presetId == "pvp_pack"
+        binding.cardPresetGhetto.setCardBackgroundColor(if (isGhetto) selectedBg else normalBg)
+        binding.cardPresetGhetto.strokeColor = if (isGhetto) neonStroke else normalStroke
+        binding.cardPresetGhetto.strokeWidth = if (isGhetto) strokeSelected else strokeNormal
+        binding.tvBadgeGhetto.visibility = if (isGhetto) View.VISIBLE else View.GONE
+
+        val isZip = presetId == "custom_zip"
+        binding.cardPresetZip.setCardBackgroundColor(if (isZip) selectedBg else normalBg)
+        binding.cardPresetZip.strokeColor = if (isZip) neonStroke else normalStroke
+        binding.cardPresetZip.strokeWidth = if (isZip) strokeSelected else strokeNormal
+        binding.tvBadgeZip.visibility = if (isZip) View.VISIBLE else View.GONE
+    }
+
+    private fun setupSettingsSpoiler() {
+        binding.layoutSettingsHeader.setOnClickListener {
+            val isVisible = binding.layoutSettingsContent.visibility == View.VISIBLE
+            if (isVisible) {
+                binding.layoutSettingsContent.visibility = View.GONE
+                binding.tvSettingsArrow.text = "Показать ▼"
+            } else {
+                binding.layoutSettingsContent.visibility = View.VISIBLE
+                binding.tvSettingsArrow.text = "Скрыть ▲"
             }
-            sessionManager.setSelectedPresetId(presetId)
-            val dir = PresetRepository.getPresetDirectory(this, presetId)
-            binding.tvPresetPathInfo.text = "Директория сборки: ${dir.name} (data, texdb, audio)"
         }
     }
 
@@ -227,7 +269,7 @@ class MainActivity : AppCompatActivity() {
             if (!ok) {
                 Toast.makeText(
                     this,
-                    "Сначала запустите службу Shizuku на устройстве!",
+                    "Сначала запусти приложение Shizuku!",
                     Toast.LENGTH_LONG
                 ).show()
             }
@@ -242,47 +284,64 @@ class MainActivity : AppCompatActivity() {
         }
 
         binding.btnLaunchHotSwap.setOnClickListener {
-            startGameWithHotSwap()
+            startGameAndModsParallel()
         }
     }
 
-    private fun startGameWithHotSwap() {
-        if (ShizukuHelper.checkStatus() != ShizukuState.ACTIVE_GRANTED) {
-            Toast.makeText(
-                this,
-                "⚠️ Для горячей подмены необходимо активировать Shizuku!",
-                Toast.LENGTH_LONG
-            ).show()
-            ShizukuHelper.requestPermissionIfNeeded()
-            return
+    private fun findGrandMobileLaunchIntent(): Intent? {
+        for (pkg in gamePackages) {
+            val intent = packageManager.getLaunchIntentForPackage(pkg)
+            if (intent != null) return intent
         }
+        val mainIntent = Intent(Intent.ACTION_MAIN, null).apply {
+            addCategory(Intent.CATEGORY_LAUNCHER)
+        }
+        val resolved = packageManager.queryIntentActivities(mainIntent, 0)
+        for (info in resolved) {
+            val pkgName = info.activityInfo?.packageName?.lowercase().orEmpty()
+            val label = info.loadLabel(packageManager)?.toString()?.lowercase().orEmpty()
+            if ((pkgName.contains("grand") && pkgName != packageName.lowercase()) ||
+                label.contains("grand mobile")
+            ) {
+                return packageManager.getLaunchIntentForPackage(info.activityInfo.packageName)
+            }
+        }
+        return null
+    }
 
+    private fun startGameAndModsParallel() {
         val delaySeconds = sessionManager.getSwapDelaySeconds()
         val presetId = sessionManager.getSelectedPresetId()
 
-        // 1. Запускаем фоновую службу отсчета таймера и подмены файлов через Shizuku
-        val serviceIntent = Intent(this, HotSwapService::class.java).apply {
-            putExtra(HotSwapService.EXTRA_DELAY_SECONDS, delaySeconds)
-            putExtra(HotSwapService.EXTRA_PRESET_ID, presetId)
-        }
-        ContextCompat.startForegroundService(this, serviceIntent)
-
-        // 2. Запускаем игру com.grandmobile.game через Intent
-        val targetPackage = BuildConfig.TARGET_GAME_PACKAGE
-        val launchIntent = packageManager.getLaunchIntentForPackage(targetPackage)
-        if (launchIntent != null) {
-            launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            startActivity(launchIntent)
-            binding.tvHotSwapLog.text =
-                "🚀 Игра $targetPackage запущена! Подмена через $delaySeconds сек..."
+        if (ShizukuHelper.checkStatus() == ShizukuState.ACTIVE_GRANTED) {
+            val serviceIntent = Intent(this, HotSwapService::class.java).apply {
+                putExtra(HotSwapService.EXTRA_DELAY_SECONDS, delaySeconds)
+                putExtra(HotSwapService.EXTRA_PRESET_ID, presetId)
+            }
+            ContextCompat.startForegroundService(this, serviceIntent)
         } else {
-            binding.tvHotSwapLog.text =
-                "⏳ Таймер ($delaySeconds сек) запущен! (Пакет $targetPackage не установлен, подмена выполнится по таймеру)"
-            Toast.makeText(
-                this,
-                "Таймер Hot-Swap ($delaySeconds сек) запущен! Откройте Grand Mobile.",
-                Toast.LENGTH_LONG
-            ).show()
+            ShizukuHelper.requestPermissionIfNeeded()
+        }
+
+        val launchIntent = findGrandMobileLaunchIntent()
+        if (launchIntent != null) {
+            launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED)
+            startActivity(launchIntent)
+            binding.tvHotSwapLog.text = "🚀 Grand Mobile запущена! Моды включатся через $delaySeconds сек..."
+        } else {
+            lifecycleScope.launch {
+                val launchedByShizuku = ShizukuHelper.launchGamePackage(gamePackages)
+                if (launchedByShizuku) {
+                    binding.tvHotSwapLog.text = "🚀 Игра запущена! Моды включатся через $delaySeconds сек..."
+                } else {
+                    binding.tvHotSwapLog.text = "⏳ Моды включатся через $delaySeconds сек! Открой Grand Mobile."
+                    Toast.makeText(
+                        this@MainActivity,
+                        "Моды активируются через $delaySeconds сек! Открой Grand Mobile.",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+            }
         }
     }
 }

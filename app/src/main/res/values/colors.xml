@@ -1,13 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="bg_dark">#0D0F14</color>
-    <color name="surface_card">#171B24</color>
-    <color name="surface_stroke">#262C3A</color>
-    <color name="accent_primary">#7C4DFF</color>
-    <color name="accent_secondary">#00E5FF</color>
-    <color name="text_primary">#F5F7FA</color>
-    <color name="text_secondary">#9AA4B2</color>
-    <color name="status_green">#00E676</color>
-    <color name="status_red">#FF5252</color>
-    <color name="status_yellow">#FFD740</color>
+    <color name="bg_dark">#090714</color>
+    <color name="surface_card">#141026</color>
+    <color name="surface_card_selected">#241748</color>
+    <color name="surface_stroke">#2D2250</color>
+    <color name="accent_primary">#9D4EDD</color>
+    <color name="accent_neon">#C77DFF</color>
+    <color name="accent_secondary">#00F5D4</color>
+    <color name="text_primary">#FFFFFF</color>
+    <color name="text_secondary">#B8B2D1</color>
+    <color name="status_green">#00F59B</color>
+    <color name="status_red">#FF4D6D</color>
+    <color name="status_yellow">#FFD166</color>
 </resources>

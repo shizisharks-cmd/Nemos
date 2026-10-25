@@ -15,7 +15,11 @@ enum class ShizukuState {
 object ShizukuHelper {
 
     const val SHIZUKU_PERMISSION_REQUEST_CODE = 1001
-    const val TARGET_GAME_FILES_DIR = "/storage/emulated/0/Android/data/com.grandmobile.game/files"
+    private val CANDIDATE_GAME_PACKAGES = listOf(
+        "com.grandmobile.game",
+        "com.grand.launcher",
+        "com.grand.cr"
+    )
 
     fun checkStatus(): ShizukuState {
         return try {
@@ -46,11 +50,26 @@ object ShizukuHelper {
         }
     }
 
+    suspend fun launchGamePackage(packages: List<String> = CANDIDATE_GAME_PACKAGES): Boolean =
+        withContext(Dispatchers.IO) {
+            if (checkStatus() != ShizukuState.ACTIVE_GRANTED) return@withContext false
+            for (pkg in packages) {
+                try {
+                    val code = execShizukuCommand(
+                        arrayOf("sh", "-c", "monkey -p $pkg -c android.intent.category.LAUNCHER 1 >/dev/null 2>&1")
+                    )
+                    if (code == 0) return@withContext true
+                } catch (_: Throwable) {
+                }
+            }
+            false
+        }
+
     suspend fun hotSwapModFolders(sourcePresetDir: File): Result<Int> = withContext(Dispatchers.IO) {
         try {
             if (checkStatus() != ShizukuState.ACTIVE_GRANTED) {
                 return@withContext Result.failure(
-                    IllegalStateException("Служба Shizuku не активна или доступ не предоставлен.")
+                    IllegalStateException("Включи доступ Shizuku в настройках.")
                 )
             }
 
@@ -59,19 +78,20 @@ object ShizukuHelper {
 
             if (existingFolders.isEmpty()) {
                 return@withContext Result.failure(
-                    IllegalArgumentException("В выбранной сборке нет папок data, texdb или audio.")
+                    IllegalArgumentException("Файлы сборки не найдены.")
                 )
             }
 
             val srcPath = sourcePresetDir.absolutePath
-            val dstPath = TARGET_GAME_FILES_DIR
-
             val copyCommands = buildString {
-                append("mkdir -p '").append(dstPath).append("' && ")
-                existingFolders.forEachIndexed { idx, folder ->
-                    if (idx > 0) append(" && ")
-                    append("cp -rf '").append(srcPath).append("/").append(folder.name)
-                    append("' '").append(dstPath).append("/'")
+                CANDIDATE_GAME_PACKAGES.forEachIndexed { pkgIdx, pkg ->
+                    val dstPath = "/storage/emulated/0/Android/data/$pkg/files"
+                    if (pkgIdx > 0) append(" ; ")
+                    append("mkdir -p '").append(dstPath).append("'")
+                    existingFolders.forEach { folder ->
+                        append(" && cp -rf '").append(srcPath).append("/").append(folder.name)
+                        append("' '").append(dstPath).append("/'")
+                    }
                 }
             }
 
@@ -79,7 +99,7 @@ object ShizukuHelper {
             if (exitCode == 0) {
                 Result.success(existingFolders.size)
             } else {
-                Result.failure(RuntimeException("Команда копирования Shizuku завершилась с кодом $exitCode"))
+                Result.failure(RuntimeException("Код ошибки Shizuku: $exitCode"))
             }
         } catch (e: Throwable) {
             Result.failure(e)
