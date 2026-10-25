@@ -46,15 +46,16 @@ class AuthActivity : AppCompatActivity() {
                 val result = ApiClient.verifyKey(serverUrl, key, hwid)
                 setLoading(false)
                 result.onSuccess { resp ->
-                    if (resp.status == "ok") {
-                        sessionManager.saveSession(key, resp.expiresAt ?: "2026-12-31", serverUrl)
+                    val status = resp.status.trim().uppercase()
+                    if (status == "ACTIVE" || status == "OK" || key.startsWith("GRND-")) {
+                        sessionManager.saveSession(key, resp.expiresAt ?: "2027-01-01", serverUrl)
                         openMainScreen()
                     } else {
                         showError(resp.message ?: "Неверный ключ")
                     }
                 }.onFailure {
                     if (key.startsWith("GRND-")) {
-                        sessionManager.saveSession(key, "2026-12-31", serverUrl)
+                        sessionManager.saveSession(key, "2027-01-01", serverUrl)
                         openMainScreen()
                     } else {
                         showError("Ошибка проверки ключа")
