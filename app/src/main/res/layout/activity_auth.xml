@@ -3,99 +3,58 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:fillViewport="true"
-    android:background="@color/bg_dark">
+    android:background="@color/bg_dark"
+    android:fillViewport="true">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
         android:gravity="center_vertical"
-        android:padding="24dp">
+        android:orientation="vertical"
+        android:padding="28dp">
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="NEMOS APP"
+            android:text="⚡ NEMOS APP"
             android:textColor="@color/text_primary"
             android:textSize="32sp"
             android:textStyle="bold" />
 
         <TextView
-            android:layout_width="match_parent"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="6dp"
             android:text="@string/auth_subtitle"
             android:textColor="@color/text_secondary"
-            android:textSize="14sp" />
+            android:textSize="15sp" />
 
-        <!-- Карточка с HWID устройства -->
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
-            app:cardBackgroundColor="@color/surface_card"
-            app:cardCornerRadius="14dp"
-            app:strokeColor="@color/surface_stroke"
-            app:strokeWidth="1dp">
+        <!-- Скрытые поля для совместимости -->
+        <TextView
+            android:id="@+id/tvHwid"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:visibility="gone" />
 
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="16dp">
+        <EditText
+            android:id="@+id/etServerUrl"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:visibility="gone" />
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Уникальный HWID устройства (ANDROID_ID):"
-                    android:textColor="@color/text_secondary"
-                    android:textSize="12sp" />
-
-                <TextView
-                    android:id="@+id/tvHwidValue"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:fontFamily="monospace"
-                    android:text="Загрузка..."
-                    android:textColor="@color/accent_secondary"
-                    android:textSize="15sp"
-                    android:textStyle="bold" />
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-
-        <!-- Поле ввода URL бэкенда Wispbyte -->
         <com.google.android.material.textfield.TextInputLayout
             style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="18dp"
-            android:hint="@string/hint_server_url"
-            app:boxBackgroundColor="@color/surface_card"
-            app:boxStrokeColor="@color/accent_primary"
-            android:textColorHint="@color/text_secondary">
-
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/etServerUrl"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:inputType="textUri"
-                android:singleLine="true"
-                android:textColor="@color/text_primary"
-                android:textSize="14sp" />
-        </com.google.android.material.textfield.TextInputLayout>
-
-        <!-- Поле ввода ключа GRND-XXXX-XXXX -->
-        <com.google.android.material.textfield.TextInputLayout
-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="14dp"
+            android:layout_marginTop="36dp"
             android:hint="@string/hint_license_key"
+            android:textColorHint="@color/text_secondary"
             app:boxBackgroundColor="@color/surface_card"
-            app:boxStrokeColor="@color/accent_primary"
-            android:textColorHint="@color/text_secondary">
+            app:boxCornerRadiusBottomEnd="16dp"
+            app:boxCornerRadiusBottomStart="16dp"
+            app:boxCornerRadiusTopEnd="16dp"
+            app:boxCornerRadiusTopStart="16dp"
+            app:boxStrokeColor="@color/accent_neon">
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/etLicenseKey"
@@ -103,38 +62,41 @@
                 android:layout_height="wrap_content"
                 android:inputType="textCapCharacters"
                 android:singleLine="true"
-                android:fontFamily="monospace"
                 android:textColor="@color/text_primary"
                 android:textSize="16sp" />
         </com.google.android.material.textfield.TextInputLayout>
 
         <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnVerifyLicense"
+            android:id="@+id/btnVerify"
             android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:layout_marginTop="20dp"
+            android:layout_height="60dp"
+            android:layout_marginTop="24dp"
             android:text="@string/btn_verify_login"
             android:textAllCaps="false"
-            android:textSize="16sp"
+            android:textColor="@color/text_primary"
+            android:textSize="17sp"
             android:textStyle="bold"
-            app:cornerRadius="12dp" />
+            app:backgroundTint="@color/accent_primary"
+            app:cornerRadius="16dp" />
 
         <ProgressBar
-            android:id="@+id/progressAuth"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center_horizontal"
-            android:layout_marginTop="16dp"
+            android:id="@+id/progressBar"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_gravity="center"
+            android:layout_marginTop="18dp"
+            android:indeterminateTint="@color/accent_neon"
             android:visibility="gone" />
 
         <TextView
-            android:id="@+id/tvAuthStatus"
+            android:id="@+id/tvStatus"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
             android:gravity="center"
-            android:textColor="@color/text_secondary"
-            android:textSize="14sp" />
+            android:textColor="@color/status_red"
+            android:textSize="14sp"
+            android:visibility="gone" />
 
     </LinearLayout>
 </ScrollView>
