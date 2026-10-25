@@ -1,4 +1,4 @@
-name: Build NEMOS APP APK
+ name: Build NEMOS APP APK
 
 on:
   push:
@@ -22,16 +22,16 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
       - name: Setup Gradle 8.7
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.7'
 
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
       - name: Build Debug-Signed APK (assembleDebug)
-        run: gradle assembleDebug --no-daemon --stacktrace
+        run: ./gradlew assembleDebug --no-daemon --stacktrace
 
       - name: Prepare NEMOS_APP.apk artifact
         run: |
@@ -46,3 +46,4 @@ jobs:
           path: dist/NEMOS_APP.apk
           if-no-files-found: error
           retention-days: 30
+          
