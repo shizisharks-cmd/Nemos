@@ -1,347 +1,273 @@
 package com.nemos.app.ui
 
-import android.content.BroadcastReceiver
-import android.content.Context
 import android.content.Intent
-import android.content.IntentFilter
-import android.content.pm.PackageManager
-import android.os.Build
+import android.net.Uri
 import android.os.Bundle
-import android.text.Editable
-import android.text.TextWatcher
+import android.os.Environment
 import android.view.View
-import android.widget.SeekBar
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.nemos.app.R
-import com.nemos.app.data.PresetRepository
 import com.nemos.app.data.SessionManager
 import com.nemos.app.databinding.ActivityMainBinding
-import com.nemos.app.service.HotSwapService
-import com.nemos.app.shizuku.ShizukuHelper
-import com.nemos.app.shizuku.ShizukuState
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import rikka.shizuku.Shizuku
+import kotlinx.coroutines.withContext
+import java.io.File
+import java.io.FileInputStream
+import java.io.FileOutputStream
+import java.io.InputStream
+import java.util.zip.ZipInputStream
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
     private lateinit var sessionManager: SessionManager
+    private var customZipUri: Uri? = null
 
-    private val gamePackages = listOf(
-        "com.grandmobile.game",
-        "com.grand.launcher",
-        "com.grand.cr"
-    )
-
-    private val shizukuPermissionListener =
-        Shizuku.OnRequestPermissionResultListener { requestCode, grantResult ->
-            if (requestCode == ShizukuHelper.SHIZUKU_PERMISSION_REQUEST_CODE) {
-                refreshShizukuStatusUi()
-                if (grantResult == PackageManager.PERMISSION_GRANTED) {
-                    Toast.makeText(this, "✅ Доступ Shizuku включен!", Toast.LENGTH_SHORT).show()
-                } else {
-                    Toast.makeText(this, "❌ Доступ Shizuku не выдан.", Toast.LENGTH_SHORT).show()
-                }
-            }
-        }
-
-    private val shizukuBinderReceivedListener = Shizuku.OnBinderReceivedListener {
-        runOnUiThread { refreshShizukuStatusUi() }
-    }
-
-    private val shizukuBinderDeadListener = Shizuku.OnBinderDeadListener {
-        runOnUiThread { refreshShizukuStatusUi() }
-    }
-
-    private val hotSwapStatusReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context?, intent: Intent?) {
-            val msg = intent?.getStringExtra(HotSwapService.EXTRA_STATUS_MESSAGE) ?: return
-            binding.tvHotSwapLog.text = msg
+    private val pickZipLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+        if (uri != null) {
+            customZipUri = uri
+            binding.tvCustomZipName.text = "Выбран пользовательский .ZIP архив"
+            selectPreset("custom")
         }
     }
-
-    private val zipPickerLauncher =
-        registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-            if (uri != null) {
-                binding.tvPresetPathInfo.text = "⏳ Загружаем твою сборку..."
-                lifecycleScope.launch {
-                    val result = PresetRepository.importZipPreset(this@MainActivity, uri)
-                    result.onSuccess { count ->
-                        selectPresetCard("custom_zip")
-                        binding.tvPresetPathInfo.text = "✅ Своя сборка загружена ($count файлов)"
-                        Toast.makeText(
-                            this@MainActivity,
-                            "✅ Своя сборка готова к игре!",
-                            Toast.LENGTH_LONG
-                        ).show()
-                    }.onFailure { err ->
-                        binding.tvPresetPathInfo.text = "❌ Не удалось загрузить архив"
-                        Toast.makeText(
-                            this@MainActivity,
-                            err.localizedMessage ?: "Ошибка чтения архива",
-                            Toast.LENGTH_LONG
-                        ).show()
-                    }
-                }
-            }
-        }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         sessionManager = SessionManager(this)
+
+        if (!sessionManager.isLoggedIn()) {
+            startActivity(Intent(this, AuthActivity::class.java))
+            finish()
+            return
+        }
+
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        val key = sessionManager.getSavedKey()
-        val exp = sessionManager.getExpiresAt().take(10)
-        binding.tvLicenseInfo.text = "Ключ: $key • До: $exp"
+        binding.tvSubInfo.text = "Ключ: ${sessionManager.getSavedKey()} • До: ${sessionManager.getExpiresAt()}"
+        binding.etSwapDelay.setText(sessionManager.getSwapDelaySeconds().toString())
 
-        lifecycleScope.launch {
-            PresetRepository.ensureBuiltInPresetsReady(this@MainActivity)
+        val initialPreset = sessionManager.getSelectedPresetId().ifBlank { "molodoy" }
+        selectPreset(if (initialPreset == "fps_boost") "molodoy" else initialPreset)
+
+        binding.cardMolodoy.setOnClickListener { selectPreset("molodoy") }
+        binding.cardFps.setOnClickListener { selectPreset("fps_boost") }
+        binding.cardGhetto.setOnClickListener { selectPreset("ghetto_pack") }
+        binding.cardCustom.setOnClickListener { selectPreset("custom") }
+
+        binding.btnPickZip.setOnClickListener {
+            pickZipLauncher.launch("application/zip")
         }
 
-        Shizuku.addRequestPermissionResultListener(shizukuPermissionListener)
-        Shizuku.addBinderReceivedListenerSticky(shizukuBinderReceivedListener)
-        Shizuku.addBinderDeadListener(shizukuBinderDeadListener)
-
-        setupPresetCards()
-        setupSettingsSpoiler()
-        setupDelayControls()
-        setupButtons()
-        refreshShizukuStatusUi()
-    }
-
-    override fun onStart() {
-        super.onStart()
-        val filter = IntentFilter(HotSwapService.ACTION_HOTSWAP_STATUS)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            registerReceiver(hotSwapStatusReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
-        } else {
-            registerReceiver(hotSwapStatusReceiver, filter)
-        }
-        refreshShizukuStatusUi()
-    }
-
-    override fun onStop() {
-        super.onStop()
-        try {
-            unregisterReceiver(hotSwapStatusReceiver)
-        } catch (_: Exception) {
-        }
-    }
-
-    override fun onDestroy() {
-        Shizuku.removeRequestPermissionResultListener(shizukuPermissionListener)
-        Shizuku.removeBinderReceivedListener(shizukuBinderReceivedListener)
-        Shizuku.removeBinderDeadListener(shizukuBinderDeadListener)
-        super.onDestroy()
-    }
-
-    private fun refreshShizukuStatusUi() {
-        when (ShizukuHelper.checkStatus()) {
-            ShizukuState.ACTIVE_GRANTED -> {
-                binding.tvShizukuStatus.text = "🟢 Shizuku подключен и готов"
-                binding.tvShizukuStatus.setTextColor(ContextCompat.getColor(this, R.color.status_green))
-                binding.btnRequestShizuku.isEnabled = false
-                binding.btnRequestShizuku.text = "Shizuku активен"
-            }
-            ShizukuState.RUNNING_NO_PERMISSION -> {
-                binding.tvShizukuStatus.text = "🟡 Нажми «Разрешить Shizuku»"
-                binding.tvShizukuStatus.setTextColor(ContextCompat.getColor(this, R.color.status_yellow))
-                binding.btnRequestShizuku.isEnabled = true
-                binding.btnRequestShizuku.text = "Разрешить Shizuku"
-            }
-            ShizukuState.NOT_RUNNING -> {
-                binding.tvShizukuStatus.text = "🔴 Включи приложение Shizuku"
-                binding.tvShizukuStatus.setTextColor(ContextCompat.getColor(this, R.color.status_red))
-                binding.btnRequestShizuku.isEnabled = true
-                binding.btnRequestShizuku.text = "Подключить Shizuku"
-            }
-        }
-    }
-
-    private fun setupPresetCards() {
-        selectPresetCard(sessionManager.getSelectedPresetId())
-
-        binding.cardPresetFps.setOnClickListener {
-            selectPresetCard("fps_boost")
-        }
-        binding.cardPresetGhetto.setOnClickListener {
-            selectPresetCard("pvp_pack")
-        }
-        binding.cardPresetZip.setOnClickListener {
-            selectPresetCard("custom_zip")
-        }
-    }
-
-    private fun selectPresetCard(presetId: String) {
-        sessionManager.setSelectedPresetId(presetId)
-
-        val selectedBg = ContextCompat.getColor(this, R.color.surface_card_selected)
-        val normalBg = ContextCompat.getColor(this, R.color.surface_card)
-        val neonStroke = ContextCompat.getColor(this, R.color.accent_neon)
-        val normalStroke = ContextCompat.getColor(this, R.color.surface_stroke)
-
-        val d = resources.displayMetrics.density
-        val strokeSelected = (2 * d).toInt()
-        val strokeNormal = (1 * d).toInt()
-
-        val isFps = presetId == "fps_boost"
-        binding.cardPresetFps.setCardBackgroundColor(if (isFps) selectedBg else normalBg)
-        binding.cardPresetFps.strokeColor = if (isFps) neonStroke else normalStroke
-        binding.cardPresetFps.strokeWidth = if (isFps) strokeSelected else strokeNormal
-        binding.tvBadgeFps.visibility = if (isFps) View.VISIBLE else View.GONE
-
-        val isGhetto = presetId == "pvp_pack"
-        binding.cardPresetGhetto.setCardBackgroundColor(if (isGhetto) selectedBg else normalBg)
-        binding.cardPresetGhetto.strokeColor = if (isGhetto) neonStroke else normalStroke
-        binding.cardPresetGhetto.strokeWidth = if (isGhetto) strokeSelected else strokeNormal
-        binding.tvBadgeGhetto.visibility = if (isGhetto) View.VISIBLE else View.GONE
-
-        val isZip = presetId == "custom_zip"
-        binding.cardPresetZip.setCardBackgroundColor(if (isZip) selectedBg else normalBg)
-        binding.cardPresetZip.strokeColor = if (isZip) neonStroke else normalStroke
-        binding.cardPresetZip.strokeWidth = if (isZip) strokeSelected else strokeNormal
-        binding.tvBadgeZip.visibility = if (isZip) View.VISIBLE else View.GONE
-    }
-
-    private fun setupSettingsSpoiler() {
-        binding.layoutSettingsHeader.setOnClickListener {
-            val isVisible = binding.layoutSettingsContent.visibility == View.VISIBLE
-            if (isVisible) {
-                binding.layoutSettingsContent.visibility = View.GONE
-                binding.tvSettingsArrow.text = "Показать ▼"
-            } else {
-                binding.layoutSettingsContent.visibility = View.VISIBLE
-                binding.tvSettingsArrow.text = "Скрыть ▲"
-            }
-        }
-    }
-
-    private fun setupDelayControls() {
-        val savedDelay = sessionManager.getSwapDelaySeconds()
-        binding.seekBarDelay.progress = savedDelay
-        binding.tvDelayValue.text = "$savedDelay сек"
-        binding.etDelaySeconds.setText(savedDelay.toString())
-
-        binding.seekBarDelay.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                val clamped = progress.coerceAtLeast(5)
-                binding.tvDelayValue.text = "$clamped сек"
-                if (fromUser) {
-                    binding.etDelaySeconds.setText(clamped.toString())
-                    sessionManager.setSwapDelaySeconds(clamped)
-                }
-            }
-
-            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
-            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
-        })
-
-        binding.etDelaySeconds.addTextChangedListener(object : TextWatcher {
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
-            override fun afterTextChanged(s: Editable?) {
-                val parsed = s?.toString()?.toIntOrNull() ?: return
-                val clamped = parsed.coerceIn(5, 60)
-                sessionManager.setSwapDelaySeconds(clamped)
-                binding.tvDelayValue.text = "$clamped сек"
-                if (binding.seekBarDelay.progress != clamped && clamped <= binding.seekBarDelay.max) {
-                    binding.seekBarDelay.progress = clamped
-                }
-            }
-        })
-    }
-
-    private fun setupButtons() {
         binding.btnLogout.setOnClickListener {
             sessionManager.clearSession()
             startActivity(Intent(this, AuthActivity::class.java))
             finish()
         }
 
-        binding.btnRequestShizuku.setOnClickListener {
-            val ok = ShizukuHelper.requestPermissionIfNeeded()
-            if (!ok) {
-                Toast.makeText(
-                    this,
-                    "Сначала запусти приложение Shizuku!",
-                    Toast.LENGTH_LONG
-                ).show()
-            }
+        binding.btnToggleSettings.setOnClickListener {
+            val isVisible = binding.layoutSettingsContent.visibility == View.VISIBLE
+            binding.layoutSettingsContent.visibility = if (isVisible) View.GONE else View.VISIBLE
+            binding.tvSettingsToggle.text = if (isVisible) "Показать ▼" else "Скрыть ▲"
         }
 
-        binding.btnRefreshShizuku.setOnClickListener {
-            refreshShizukuStatusUi()
+        binding.btnSaveSettings.setOnClickListener {
+            val sec = binding.etSwapDelay.text?.toString()?.toIntOrNull() ?: 17
+            sessionManager.setSwapDelaySeconds(sec.coerceIn(1, 120))
+            Toast.makeText(this, "Настройки сохранены", Toast.LENGTH_SHORT).show()
         }
 
-        binding.btnImportZip.setOnClickListener {
-            zipPickerLauncher.launch("application/zip")
-        }
-
-        binding.btnLaunchHotSwap.setOnClickListener {
-            startGameAndModsParallel()
+        binding.btnPlay.setOnClickListener {
+            val preset = sessionManager.getSelectedPresetId()
+            val delaySec = sessionManager.getSwapDelaySeconds()
+            applyModsAndLaunch(preset, delaySec)
         }
     }
 
-    private fun findGrandMobileLaunchIntent(): Intent? {
-        for (pkg in gamePackages) {
-            val intent = packageManager.getLaunchIntentForPackage(pkg)
-            if (intent != null) return intent
+    private fun selectPreset(presetId: String) {
+        sessionManager.setSelectedPresetId(presetId)
+
+        binding.cardMolodoy.setBackgroundResource(if (presetId == "molodoy") R.drawable.bg_card_selected else R.drawable.bg_card_unselected)
+        binding.tvBadgeMolodoy.visibility = if (presetId == "molodoy") View.VISIBLE else View.GONE
+
+        binding.cardFps.setBackgroundResource(if (presetId == "fps_boost") R.drawable.bg_card_selected else R.drawable.bg_card_unselected)
+        binding.tvBadgeFps.visibility = if (presetId == "fps_boost") View.VISIBLE else View.GONE
+
+        binding.cardGhetto.setBackgroundResource(if (presetId == "ghetto_pack") R.drawable.bg_card_selected else R.drawable.bg_card_unselected)
+        binding.tvBadgeGhetto.visibility = if (presetId == "ghetto_pack") View.VISIBLE else View.GONE
+
+        binding.cardCustom.setBackgroundResource(if (presetId == "custom") R.drawable.bg_card_selected else R.drawable.bg_card_unselected)
+        binding.tvBadgeCustom.visibility = if (presetId == "custom") View.VISIBLE else View.GONE
+
+        val title = when (presetId) {
+            "molodoy" -> "Сборка Molodoy"
+            "fps_boost" -> "FPS Boost"
+            "ghetto_pack" -> "Ghetto Pack"
+            else -> "Своя сборка (.ZIP)"
         }
-        val mainIntent = Intent(Intent.ACTION_MAIN, null).apply {
-            addCategory(Intent.CATEGORY_LAUNCHER)
+        binding.tvStatus.text = "Выбрано: $title. Нажми «Играть с модами»"
+    }
+
+    private fun applyModsAndLaunch(presetId: String, delaySec: Int) {
+        binding.btnPlay.isEnabled = false
+        binding.tvStatus.text = "⏳ Установка сборки и запуск Grand Mobile..."
+
+        lifecycleScope.launch {
+            val count = withContext(Dispatchers.IO) {
+                installPresetFiles(presetId)
+            }
+
+            val launched = launchGrandMobile()
+            if (launched) {
+                binding.tvStatus.text = "✅ Сборка активна (файлов: $count). Приятной игры!"
+                lifecycleScope.launch(Dispatchers.IO) {
+                    delay(delaySec * 1000L)
+                    installPresetFiles(presetId)
+                }
+            } else {
+                binding.tvStatus.text = "⚠️ Сборка подготовлена (файлов: $count), но Grand Mobile не найден"
+                Toast.makeText(this@MainActivity, "Установи Grand Mobile на телефон", Toast.LENGTH_LONG).show()
+            }
+            binding.btnPlay.isEnabled = true
         }
-        val resolved = packageManager.queryIntentActivities(mainIntent, 0)
-        for (info in resolved) {
-            val pkgName = info.activityInfo?.packageName?.lowercase().orEmpty()
-            val label = info.loadLabel(packageManager)?.toString()?.lowercase().orEmpty()
-            if ((pkgName.contains("grand") && pkgName != packageName.lowercase()) ||
-                label.contains("grand mobile")
-            ) {
-                return packageManager.getLaunchIntentForPackage(info.activityInfo.packageName)
+    }
+
+    private fun installPresetFiles(presetId: String): Int {
+        val targets = getTargetFilesDirs()
+        var extractedCount = 0
+
+        try {
+            val stream: InputStream? = when (presetId) {
+                "molodoy" -> openMolodoyStream()
+                "custom" -> customZipUri?.let { contentResolver.openInputStream(it) } ?: openMolodoyStream()
+                else -> openMolodoyStream()
+            }
+
+            if (stream != null) {
+                val stagingDir = File(getExternalFilesDir(null), "active_mods/files").apply { mkdirs() }
+                extractedCount = extractZipToDir(stream, stagingDir)
+                for (target in targets) {
+                    try {
+                        stagingDir.copyRecursively(target, overwrite = true)
+                    } catch (_: Exception) {}
+                }
+            }
+        } catch (_: Exception) {}
+
+        return extractedCount
+    }
+
+    private fun openMolodoyStream(): InputStream? {
+        try {
+            return assets.open("molodoy.zip")
+        } catch (_: Exception) {}
+
+        val downloadDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+        val candidates = mutableListOf(
+            File(downloadDir, "molodoy_pack.zip"),
+            File(downloadDir, "sb dlya Molodoy (1) - Копия - Копия.zip"),
+            File("/sdcard/Download/molodoy_pack.zip"),
+            File("/sdcard/Download/sb dlya Molodoy (1) - Копия - Копия.zip")
+        )
+
+        downloadDir?.listFiles()?.firstOrNull {
+            it.isFile && it.name.contains("molodoy", ignoreCase = true) && it.name.endsWith(".zip", ignoreCase = true)
+        }?.let { candidates.add(0, it) }
+
+        for (file in candidates) {
+            if (file.exists() && file.canRead()) {
+                return FileInputStream(file)
             }
         }
         return null
     }
 
-    private fun startGameAndModsParallel() {
-        val delaySeconds = sessionManager.getSwapDelaySeconds()
-        val presetId = sessionManager.getSelectedPresetId()
+    private fun extractZipToDir(input: InputStream, destRoot: File): Int {
+        var filesExtracted = 0
+        ZipInputStream(input.buffered()).use { zis ->
+            var entry = zis.nextEntry
+            val buffer = ByteArray(8192)
+            while (entry != null) {
+                if (!entry.isDirectory) {
+                    val rawName = entry.name.replace('\\', '/')
+                    val relPath = when {
+                        rawName.contains("files/") -> rawName.substringAfter("files/")
+                        rawName.startsWith("Molodoy/") -> rawName.removePrefix("Molodoy/")
+                        else -> rawName
+                    }.trimStart('/')
 
-        if (ShizukuHelper.checkStatus() == ShizukuState.ACTIVE_GRANTED) {
-            val serviceIntent = Intent(this, HotSwapService::class.java).apply {
-                putExtra(HotSwapService.EXTRA_DELAY_SECONDS, delaySeconds)
-                putExtra(HotSwapService.EXTRA_PRESET_ID, presetId)
+                    if (relPath.isNotEmpty()) {
+                        val outFile = File(destRoot, relPath)
+                        outFile.parentFile?.mkdirs()
+                        FileOutputStream(outFile).use { fos ->
+                            var len: Int
+                            while (zis.read(buffer).also { len = it } > 0) {
+                                fos.write(buffer, 0, len)
+                            }
+                        }
+                        filesExtracted++
+                    }
+                }
+                zis.closeEntry()
+                entry = zis.nextEntry
             }
-            ContextCompat.startForegroundService(this, serviceIntent)
-        } else {
-            ShizukuHelper.requestPermissionIfNeeded()
+        }
+        return filesExtracted
+    }
+
+    private fun getTargetFilesDirs(): List<File> {
+        val packages = listOf(
+            "com.grandmobile.game",
+            "ru.grandmobile.game",
+            "com.grand.mobile",
+            "com.weiz.grandmobile"
+        )
+        val dirs = mutableListOf<File>()
+        val extRoot = Environment.getExternalStorageDirectory()
+        for (pkg in packages) {
+            dirs.add(File(extRoot, "Android/data/$pkg/files"))
+        }
+        return dirs
+    }
+
+    private fun launchGrandMobile(): Boolean {
+        val knownPackages = listOf(
+            "com.grandmobile.game",
+            "ru.grandmobile.game",
+            "com.grand.mobile",
+            "com.weiz.grandmobile"
+        )
+
+        for (pkg in knownPackages) {
+            val intent = packageManager.getLaunchIntentForPackage(pkg)
+            if (intent != null) {
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                startActivity(intent)
+                return true
+            }
         }
 
-        val launchIntent = findGrandMobileLaunchIntent()
-        if (launchIntent != null) {
-            launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED)
-            startActivity(launchIntent)
-            binding.tvHotSwapLog.text = "🚀 Grand Mobile запущена! Моды включатся через $delaySeconds сек..."
-        } else {
-            lifecycleScope.launch {
-                val launchedByShizuku = ShizukuHelper.launchGamePackage(gamePackages)
-                if (launchedByShizuku) {
-                    binding.tvHotSwapLog.text = "🚀 Игра запущена! Моды включатся через $delaySeconds сек..."
-                } else {
-                    binding.tvHotSwapLog.text = "⏳ Моды включатся через $delaySeconds сек! Открой Grand Mobile."
-                    Toast.makeText(
-                        this@MainActivity,
-                        "Моды активируются через $delaySeconds сек! Открой Grand Mobile.",
-                        Toast.LENGTH_LONG
-                    ).show()
+        val mainIntent = Intent(Intent.ACTION_MAIN, null).apply {
+            addCategory(Intent.CATEGORY_LAUNCHER)
+        }
+        val apps = packageManager.queryIntentActivities(mainIntent, 0)
+        for (info in apps) {
+            val pkg = info.activityInfo.packageName
+            val label = info.loadLabel(packageManager)?.toString().orEmpty()
+            if (pkg.contains("grand", ignoreCase = true) || label.contains("grand", ignoreCase = true)) {
+                val launchIntent = packageManager.getLaunchIntentForPackage(pkg)
+                if (launchIntent != null) {
+                    launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    startActivity(launchIntent)
+                    return true
                 }
             }
         }
+        return false
     }
 }
