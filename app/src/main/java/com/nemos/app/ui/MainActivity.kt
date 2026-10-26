@@ -4,10 +4,12 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.os.Environment
+import android.provider.DocumentsContract
 import android.view.View
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.lifecycleScope
 import com.nemos.app.R
 import com.nemos.app.data.SessionManager
@@ -31,8 +33,25 @@ class MainActivity : AppCompatActivity() {
     private val pickZipLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         if (uri != null) {
             customZipUri = uri
-            binding.tvCustomZipName.text = "Выбран пользовательский .ZIP архив"
+            binding.tvCustomZipName.text = "Выбран пользовательский .ZIP"
             selectPreset("custom")
+        }
+    }
+
+    private val openFolderLauncher = registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri: Uri? ->
+        if (uri != null) {
+            val flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+            try {
+                contentResolver.takePersistableUriPermission(uri, flags)
+            } catch (_: Exception) {}
+            getSharedPreferences("nemos_prefs", MODE_PRIVATE).edit()
+                .putString("saf_game_uri", uri.toString())
+                .apply()
+            Toast.makeText(this, "Доступ получен!", Toast.LENGTH_SHORT).show()
+            executeInstallAndLaunch()
+        } else {
+            binding.btnPlay.isEnabled = true
+            binding.tvStatus.text = "⚠️ Доступ к папке не был предоставлен"
         }
     }
 
@@ -83,9 +102,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         binding.btnPlay.setOnClickListener {
-            val preset = sessionManager.getSelectedPresetId()
-            val delaySec = sessionManager.getSwapDelaySeconds()
-            applyModsAndLaunch(preset, delaySec)
+            checkAccessAndStart()
         }
     }
 
@@ -113,85 +130,94 @@ class MainActivity : AppCompatActivity() {
         binding.tvStatus.text = "Выбрано: $title. Нажми «Играть с модами»"
     }
 
-    private fun applyModsAndLaunch(presetId: String, delaySec: Int) {
+    private fun checkAccessAndStart() {
+        val savedUri = getSavedTreeUri()
+        if (savedUri != null) {
+            executeInstallAndLaunch()
+        } else {
+            promptFolderAccess()
+        }
+    }
+
+    private fun getSavedTreeUri(): Uri? {
+        val uriStr = getSharedPreferences("nemos_prefs", MODE_PRIVATE).getString("saf_game_uri", null) ?: return null
+        val uri = Uri.parse(uriStr)
+        val hasPerm = contentResolver.persistedUriPermissions.any { it.uri == uri && it.isWritePermission }
+        return if (hasPerm) uri else null
+    }
+
+    private fun promptFolderAccess() {
+        Toast.makeText(this, "Выбери папку com.grandmobile.game и нажми «Использовать эту папку»", Toast.LENGTH_LONG).show()
+        val initialUri = Uri.parse("content://com.android.externalstorage.documents/document/primary%3AAndroid%2Fdata%2Fcom.grandmobile.game")
+        openFolderLauncher.launch(initialUri)
+    }
+
+    private fun executeInstallAndLaunch() {
         binding.btnPlay.isEnabled = false
-        binding.tvStatus.text = "⏳ Установка сборки и запуск Grand Mobile..."
+        binding.tvStatus.text = "⏳ Установка файлов сборки в Grand Mobile..."
+
+        val preset = sessionManager.getSelectedPresetId()
+        val delaySec = sessionManager.getSwapDelaySeconds()
 
         lifecycleScope.launch {
             val count = withContext(Dispatchers.IO) {
-                installPresetFiles(presetId)
+                applyModsToGame(preset)
             }
 
             val launched = launchGrandMobile()
             if (launched) {
-                binding.tvStatus.text = "✅ Сборка активна (файлов: $count). Приятной игры!"
+                binding.tvStatus.text = "✅ Сборка установлена ($count файлов). Игра запущена!"
                 lifecycleScope.launch(Dispatchers.IO) {
                     delay(delaySec * 1000L)
-                    installPresetFiles(presetId)
+                    applyModsToGame(preset)
                 }
             } else {
-                binding.tvStatus.text = "⚠️ Сборка подготовлена (файлов: $count), но Grand Mobile не найден"
-                Toast.makeText(this@MainActivity, "Установи Grand Mobile на телефон", Toast.LENGTH_LONG).show()
+                binding.tvStatus.text = "⚠️ Сборка записана ($count файлов), но игра не найдена"
+                Toast.makeText(this@MainActivity, "Grand Mobile не найден на телефоне", Toast.LENGTH_LONG).show()
             }
             binding.btnPlay.isEnabled = true
         }
     }
 
-    private fun installPresetFiles(presetId: String): Int {
-        val targets = getTargetFilesDirs()
-        var extractedCount = 0
+    private fun applyModsToGame(presetId: String): Int {
+        var count = 0
+        val treeUri = getSavedTreeUri()
 
-        try {
-            val stream: InputStream? = when (presetId) {
-                "molodoy" -> openMolodoyStream()
-                "custom" -> customZipUri?.let { contentResolver.openInputStream(it) } ?: openMolodoyStream()
-                else -> openMolodoyStream()
-            }
-
-            if (stream != null) {
-                val stagingDir = File(getExternalFilesDir(null), "active_mods/files").apply { mkdirs() }
-                extractedCount = extractZipToDir(stream, stagingDir)
-                for (target in targets) {
-                    try {
-                        stagingDir.copyRecursively(target, overwrite = true)
-                    } catch (_: Exception) {}
+        if (treeUri != null) {
+            val rootDoc = DocumentFile.fromTreeUri(this, treeUri)
+            if (rootDoc != null) {
+                val filesDoc = findOrCreateSubdir(rootDoc, "files")
+                openModStream(presetId)?.use { input ->
+                    count += copyZipToDocumentTree(input, filesDoc)
                 }
             }
-        } catch (_: Exception) {}
+        }
 
-        return extractedCount
-    }
-
-    private fun openMolodoyStream(): InputStream? {
-        try {
-            return assets.open("molodoy.zip")
-        } catch (_: Exception) {}
-
-        val downloadDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-        val candidates = mutableListOf(
-            File(downloadDir, "molodoy_pack.zip"),
-            File(downloadDir, "sb dlya Molodoy (1) - Копия - Копия.zip"),
-            File("/sdcard/Download/molodoy_pack.zip"),
-            File("/sdcard/Download/sb dlya Molodoy (1) - Копия - Копия.zip")
+        val directTargets = listOf(
+            File(Environment.getExternalStorageDirectory(), "Android/data/com.grandmobile.game/files"),
+            File(Environment.getExternalStorageDirectory(), "Android/data/ru.grandmobile.game/files")
         )
 
-        downloadDir?.listFiles()?.firstOrNull {
-            it.isFile && it.name.contains("molodoy", ignoreCase = true) && it.name.endsWith(".zip", ignoreCase = true)
-        }?.let { candidates.add(0, it) }
-
-        for (file in candidates) {
-            if (file.exists() && file.canRead()) {
-                return FileInputStream(file)
+        for (dir in directTargets) {
+            if (dir.exists() && dir.canWrite()) {
+                openModStream(presetId)?.use { input ->
+                    count += extractZipToDirectDir(input, dir)
+                }
             }
         }
-        return null
+
+        return count
     }
 
-    private fun extractZipToDir(input: InputStream, destRoot: File): Int {
-        var filesExtracted = 0
+    private fun findOrCreateSubdir(parent: DocumentFile, name: String): DocumentFile {
+        if (parent.name.equals(name, ignoreCase = true)) return parent
+        return parent.findFile(name) ?: parent.createDirectory(name) ?: parent
+    }
+
+    private fun copyZipToDocumentTree(input: InputStream, targetDir: DocumentFile): Int {
+        var filesCopied = 0
         ZipInputStream(input.buffered()).use { zis ->
             var entry = zis.nextEntry
-            val buffer = ByteArray(8192)
             while (entry != null) {
                 if (!entry.isDirectory) {
                     val rawName = entry.name.replace('\\', '/')
@@ -202,7 +228,46 @@ class MainActivity : AppCompatActivity() {
                     }.trimStart('/')
 
                     if (relPath.isNotEmpty()) {
-                        val outFile = File(destRoot, relPath)
+                        val parts = relPath.split("/").filter { it.isNotEmpty() }
+                        var curr = targetDir
+                        for (i in 0 until parts.size - 1) {
+                            val dirName = parts[i]
+                            curr = curr.findFile(dirName) ?: curr.createDirectory(dirName) ?: curr
+                        }
+                        val fileName = parts.last()
+                        curr.findFile(fileName)?.delete()
+                        val newDoc = curr.createFile("application/octet-stream", fileName)
+                        if (newDoc != null) {
+                            contentResolver.openOutputStream(newDoc.uri)?.use { os ->
+                                zis.copyTo(os)
+                            }
+                            filesCopied++
+                        }
+                    }
+                }
+                zis.closeEntry()
+                entry = zis.nextEntry
+            }
+        }
+        return filesCopied
+    }
+
+    private fun extractZipToDirectDir(input: InputStream, targetDir: File): Int {
+        var count = 0
+        val buffer = ByteArray(8192)
+        ZipInputStream(input.buffered()).use { zis ->
+            var entry = zis.nextEntry
+            while (entry != null) {
+                if (!entry.isDirectory) {
+                    val rawName = entry.name.replace('\\', '/')
+                    val relPath = when {
+                        rawName.contains("files/") -> rawName.substringAfter("files/")
+                        rawName.startsWith("Molodoy/") -> rawName.removePrefix("Molodoy/")
+                        else -> rawName
+                    }.trimStart('/')
+
+                    if (relPath.isNotEmpty()) {
+                        val outFile = File(targetDir, relPath)
                         outFile.parentFile?.mkdirs()
                         FileOutputStream(outFile).use { fos ->
                             var len: Int
@@ -210,29 +275,38 @@ class MainActivity : AppCompatActivity() {
                                 fos.write(buffer, 0, len)
                             }
                         }
-                        filesExtracted++
+                        count++
                     }
                 }
                 zis.closeEntry()
                 entry = zis.nextEntry
             }
         }
-        return filesExtracted
+        return count
     }
 
-    private fun getTargetFilesDirs(): List<File> {
-        val packages = listOf(
-            "com.grandmobile.game",
-            "ru.grandmobile.game",
-            "com.grand.mobile",
-            "com.weiz.grandmobile"
-        )
-        val dirs = mutableListOf<File>()
-        val extRoot = Environment.getExternalStorageDirectory()
-        for (pkg in packages) {
-            dirs.add(File(extRoot, "Android/data/$pkg/files"))
+    private fun openModStream(presetId: String): InputStream? {
+        if (presetId == "custom" && customZipUri != null) {
+            try {
+                return contentResolver.openInputStream(customZipUri!!)
+            } catch (_: Exception) {}
         }
-        return dirs
+
+        try {
+            return assets.open("molodoy.zip")
+        } catch (_: Exception) {}
+
+        val candidates = listOf(
+            File("/sdcard/Download/molodoy_pack.zip"),
+            File("/sdcard/Download/sb dlya Molodoy (1) - Копия - Копия.zip"),
+            File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "molodoy_pack.zip")
+        )
+        for (f in candidates) {
+            if (f.exists() && f.canRead()) {
+                return FileInputStream(f)
+            }
+        }
+        return null
     }
 
     private fun launchGrandMobile(): Boolean {
@@ -242,30 +316,12 @@ class MainActivity : AppCompatActivity() {
             "com.grand.mobile",
             "com.weiz.grandmobile"
         )
-
         for (pkg in knownPackages) {
             val intent = packageManager.getLaunchIntentForPackage(pkg)
             if (intent != null) {
                 intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 startActivity(intent)
                 return true
-            }
-        }
-
-        val mainIntent = Intent(Intent.ACTION_MAIN, null).apply {
-            addCategory(Intent.CATEGORY_LAUNCHER)
-        }
-        val apps = packageManager.queryIntentActivities(mainIntent, 0)
-        for (info in apps) {
-            val pkg = info.activityInfo.packageName
-            val label = info.loadLabel(packageManager)?.toString().orEmpty()
-            if (pkg.contains("grand", ignoreCase = true) || label.contains("grand", ignoreCase = true)) {
-                val launchIntent = packageManager.getLaunchIntentForPackage(pkg)
-                if (launchIntent != null) {
-                    launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    startActivity(launchIntent)
-                    return true
-                }
             }
         }
         return false
