@@ -22,6 +22,7 @@ import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.io.InputStream
+import java.lang.reflect.Method
 import java.util.zip.ZipInputStream
 
 class MainActivity : AppCompatActivity() {
@@ -140,7 +141,7 @@ class MainActivity : AppCompatActivity() {
         if (!isAlive) {
             AlertDialog.Builder(this)
                 .setTitle("Shizuku не запущен")
-                .setMessage("Сервис Shizuku не активен.\n\nВы можете запустить Shizuku через Беспроводную отладку или переключиться сверху на вкладку «MT Manager» без Shizuku.")
+                .setMessage("Сервис Shizuku не активен.\n\nЗапустите Shizuku через Беспроводную отладку или переключите вкладку сверху на «MT Manager».")
                 .setPositiveButton("Понятно", null)
                 .setNegativeButton("Переключить на MT") { _, _ -> setInstallMode(false) }
                 .show()
@@ -185,7 +186,15 @@ class MainActivity : AppCompatActivity() {
 
             val gameFilesPath = "/storage/emulated/0/Android/data/$pkg/files"
             val cmd = "mkdir -p '$gameFilesPath' && cp -rf '${stagingDir.absolutePath}/.' '$gameFilesPath/'"
-            val proc = Shizuku.newProcess(arrayOf("sh", "-c", cmd), null, null)
+
+            val method: Method = Shizuku::class.java.getDeclaredMethod(
+                "newProcess",
+                Array<String>::class.java,
+                Array<String>::class.java,
+                String::class.java
+            )
+            method.isAccessible = true
+            val proc = method.invoke(null, arrayOf("sh", "-c", cmd), null, null) as Process
             proc.waitFor()
             return proc.exitValue() == 0
         } catch (_: Exception) {
