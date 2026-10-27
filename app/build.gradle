@@ -4,6 +4,26 @@ plugins {
 }
 
 android {
+
+    signingConfigs {
+        release {
+            storeFile file("nemos_keystore.jks")
+            storePassword "nemos12345"
+            keyAlias "nemos"
+            keyPassword "nemos12345"
+        }
+    }
+
+    buildTypes {
+        debug {
+            signingConfig signingConfigs.release
+        }
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.release
+        }
+    }
+
     namespace 'com.nemos.app'
     compileSdk 34
 
@@ -19,37 +39,9 @@ android {
         buildConfigField "String", "TARGET_GAME_PACKAGE", '"com.grandmobile.game"'
     }
 
-    signingConfigs {
-        // Подписываем и debug, и release сборку стандартным debug-ключом для установки без ПК
-        releaseWithDebugKey {
-            initWith debug
-        }
-    }
+    
 
-    buildTypes {
-        debug {
-            signingConfig signingConfigs.release
-        }
-        release {
-            minifyEnabled false
-            signingConfig signingConfigs.release
-        }
-    }
-
-    compileOptions {
-        sourceCompatibility JavaVersion.VERSION_17
-        targetCompatibility JavaVersion.VERSION_17
-    }
-
-    kotlinOptions {
-        jvmTarget = '17'
-    }
-
-    buildFeatures {
-        viewBinding true
-        buildConfig true
-    }
-}
+    
 
 dependencies {
     implementation 'androidx.core:core-ktx:1.13.1'
