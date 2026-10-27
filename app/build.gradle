@@ -28,13 +28,11 @@ android {
 
     buildTypes {
         debug {
-            minifyEnabled false
-            applicationIdSuffix ""
+            signingConfig signingConfigs.release
         }
         release {
             minifyEnabled false
-            signingConfig signingConfigs.releaseWithDebugKey
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.release
         }
     }
 

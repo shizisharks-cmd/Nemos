@@ -14,6 +14,10 @@
         <package android:name="ru.grandmobile.game" />
         <package android:name="com.grand.mobile" />
         <package android:name="com.weiz.grandmobile" />
+        <package android:name="bin.mt.plus" />
+        <package android:name="bin.mt.plus.canary" />
+        <package android:name="bin.mt.mmp" />
+        <package android:name="moe.shizuku.privileged.api" />
         <intent>
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LAUNCHER" />

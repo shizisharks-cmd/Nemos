@@ -98,7 +98,7 @@ class MainActivity : AppCompatActivity() {
         isShizukuMode = shizuku
         if (shizuku) {
             binding.btnTabShizuku.setBackgroundResource(R.drawable.bg_btn_primary)
-            binding.btnTabShizuku.setTextColor(getColor(android.R.color.white))
+            binding.btnTabShizuku.setTextColor(0xFFFFFFFF.toInt())
             binding.btnTabMt.setBackgroundColor(0)
             binding.btnTabMt.setTextColor(0xFFA1A1AA.toInt())
             binding.btnPrimaryAction.text = "🚀 ИГРАТЬ С МОДАМИ (SHIZUKU)"
@@ -106,12 +106,12 @@ class MainActivity : AppCompatActivity() {
             binding.tvStatus.text = "Режим: Автоматическая установка через Shizuku"
         } else {
             binding.btnTabMt.setBackgroundResource(R.drawable.bg_btn_primary)
-            binding.btnTabMt.setTextColor(getColor(android.R.color.white))
+            binding.btnTabMt.setTextColor(0xFFFFFFFF.toInt())
             binding.btnTabShizuku.setBackgroundColor(0)
             binding.btnTabShizuku.setTextColor(0xFFA1A1AA.toInt())
             binding.btnPrimaryAction.text = "📦 РАСПАКОВАТЬ ДЛЯ MT MANAGER"
             binding.layoutMtButtons.visibility = View.VISIBLE
-            binding.tvStatus.text = "Режим: Ручная вставка через MT Manager"
+            binding.tvStatus.text = "Режим: Вставка через MT Manager"
         }
     }
 
@@ -131,7 +131,6 @@ class MainActivity : AppCompatActivity() {
         binding.tvBadgeCustom.visibility = if (presetId == "custom") View.VISIBLE else View.GONE
     }
 
-    // --- Вариант А: Shizuku ---
     private fun handleShizukuInstallAndLaunch() {
         var isAlive = false
         try {
@@ -141,7 +140,7 @@ class MainActivity : AppCompatActivity() {
         if (!isAlive) {
             AlertDialog.Builder(this)
                 .setTitle("Shizuku не запущен")
-                .setMessage("Сервис Shizuku не активен на телефоне.\n\nВы можете:\n1. Запустить Shizuku (через Беспроводную отладку).\n2. Или переключить вкладку сверху на «📁 MT Manager» — там сборка распакуется без Shizuku.")
+                .setMessage("Сервис Shizuku не активен.\n\nВы можете запустить Shizuku через Беспроводную отладку или переключиться сверху на вкладку «MT Manager» без Shizuku.")
                 .setPositiveButton("Понятно", null)
                 .setNegativeButton("Переключить на MT") { _, _ -> setInstallMode(false) }
                 .show()
@@ -189,12 +188,11 @@ class MainActivity : AppCompatActivity() {
             val proc = Shizuku.newProcess(arrayOf("sh", "-c", cmd), null, null)
             proc.waitFor()
             return proc.exitValue() == 0
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             return false
         }
     }
 
-    // --- Вариант Б: MT Manager Helper ---
     private fun handleMtUnpack() {
         binding.btnPrimaryAction.isEnabled = false
         binding.tvStatus.text = "⏳ Распаковываем файлы сборки в загрузки..."
@@ -214,7 +212,7 @@ class MainActivity : AppCompatActivity() {
 
             AlertDialog.Builder(this@MainActivity)
                 .setTitle("✅ Сборка распакована!")
-                .setMessage("Папка с модами создана:\nDownload/Nemos_Mods/Molodoy/files\n\nИнструкция для MT Manager:\n1. Нажмите «Открыть MT Manager» ниже.\n2. Слева зайдите в: Download/Nemos_Mods/Molodoy/\n3. Справа зайдите в: Android/data/com.grandmobile.game/\n4. Зажмите папку files и скопируйте с заменой.\n5. Вернитесь в лаунчер и нажмите «Запустить Grand Mobile».")
+                .setMessage("Файлы готовы в папке:\nDownload/Nemos_Mods/Molodoy/files\n\nИнструкция для MT Manager:\n1. Нажмите «Открыть MT Manager» ниже.\n2. Слева откройте: Download/Nemos_Mods/Molodoy/\n3. Справа откройте: Android/data/com.grandmobile.game/\n4. Зажмите папку files и скопируйте с заменой.\n5. Вернитесь в лаунчер и нажмите «Запустить Grand Mobile».")
                 .setPositiveButton("Открыть MT Manager") { _, _ -> openMtManager() }
                 .setNegativeButton("Понятно", null)
                 .show()

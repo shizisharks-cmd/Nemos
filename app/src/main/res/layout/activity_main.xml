@@ -11,7 +11,6 @@
         android:orientation="vertical"
         android:padding="20dp">
 
-        <!-- Шапка -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -49,13 +48,12 @@
             android:textSize="12sp"
             android:textStyle="bold" />
 
-        <!-- Переключатель режима: Shizuku vs MT Manager -->
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="18dp"
             android:layout_marginBottom="8dp"
-            android:text="РЕЖИМ УСТАНОВКИ МОДОВ"
+            android:text="РЕЖИМ УСТАНОВКИ"
             android:textColor="#A855F7"
             android:textSize="12sp"
             android:textStyle="bold" />
@@ -73,7 +71,7 @@
                 android:layout_height="match_parent"
                 android:layout_weight="1"
                 android:background="@drawable/bg_btn_primary"
-                android:text="⚡ Авто (Shizuku)"
+                android:text="⚡ Shizuku (1 клик)"
                 android:textAllCaps="false"
                 android:textColor="#FFFFFF"
                 android:textSize="13sp"
@@ -92,7 +90,6 @@
                 android:textStyle="bold" />
         </LinearLayout>
 
-        <!-- Выбор сборок -->
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -103,7 +100,6 @@
             android:textSize="12sp"
             android:textStyle="bold" />
 
-        <!-- Card: Molodoy -->
         <LinearLayout
             android:id="@+id/cardMolodoy"
             android:layout_width="match_parent"
@@ -147,7 +143,6 @@
                 android:textStyle="bold" />
         </LinearLayout>
 
-        <!-- Card: FPS Boost -->
         <LinearLayout
             android:id="@+id/cardFps"
             android:layout_width="match_parent"
@@ -176,7 +171,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="2dp"
-                    android:text="Максимальный фпс для слабых устройств"
+                    android:text="Максимальный FPS для слабых телефонов"
                     android:textColor="#A1A1AA"
                     android:textSize="12sp" />
             </LinearLayout>
@@ -192,7 +187,6 @@
                 android:visibility="gone" />
         </LinearLayout>
 
-        <!-- Card: Ghetto Pack -->
         <LinearLayout
             android:id="@+id/cardGhetto"
             android:layout_width="match_parent"
@@ -237,7 +231,6 @@
                 android:visibility="gone" />
         </LinearLayout>
 
-        <!-- Card: Custom ZIP -->
         <LinearLayout
             android:id="@+id/cardCustom"
             android:layout_width="match_parent"
@@ -300,7 +293,6 @@
                 android:textSize="13sp" />
         </LinearLayout>
 
-        <!-- Основная кнопка действия -->
         <Button
             android:id="@+id/btnPrimaryAction"
             android:layout_width="match_parent"
@@ -312,7 +304,6 @@
             android:textSize="15sp"
             android:textStyle="bold" />
 
-        <!-- Дополнительные кнопки для режима MT Manager -->
         <LinearLayout
             android:id="@+id/layoutMtButtons"
             android:layout_width="match_parent"
