@@ -1,24 +1,23 @@
 package com.nemos.app.ui
 
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
 import android.os.Environment
-import android.provider.DocumentsContract
 import android.view.View
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.lifecycleScope
 import com.nemos.app.R
 import com.nemos.app.data.SessionManager
 import com.nemos.app.databinding.ActivityMainBinding
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import rikka.shizuku.Shizuku
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
@@ -30,45 +29,13 @@ class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private lateinit var sessionManager: SessionManager
     private var customZipUri: Uri? = null
+    private var isShizukuMode = true
 
     private val pickZipLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         if (uri != null) {
             customZipUri = uri
-            binding.tvCustomZipName.text = "Выбран пользовательский .ZIP"
+            binding.tvCustomZipName.text = "Выбран пользовательский ZIP"
             selectPreset("custom")
-        }
-    }
-
-    private val openFolderLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-        val uri = result.data?.data
-        if (uri != null) {
-            val decoded = Uri.decode(uri.toString())
-            if (decoded.contains(":Android/media", ignoreCase = true) || decoded.endsWith("/media", ignoreCase = true) || decoded.contains("%2Fmedia", ignoreCase = true)) {
-                binding.btnPlay.isEnabled = true
-                binding.tvStatus.text = "❌ Выбрана папка media! Нужна папка com.grandmobile.game"
-                AlertDialog.Builder(this)
-                    .setTitle("Выбрана не та папка")
-                    .setMessage("Вы дали доступ к папке media. Моды должны устанавливаться в:\nAndroid ➔ data ➔ com.grandmobile.game\n\nНажмите «Повторить», чтобы выбрать верную папку.")
-                    .setPositiveButton("Повторить") { _, _ -> promptFolderAccess() }
-                    .setNegativeButton("Отмена", null)
-                    .show()
-                return@registerForActivityResult
-            }
-
-            val flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
-            try {
-                contentResolver.takePersistableUriPermission(uri, flags)
-            } catch (_: Exception) {}
-
-            getSharedPreferences("nemos_prefs", MODE_PRIVATE).edit()
-                .putString("saf_game_uri", uri.toString())
-                .apply()
-
-            Toast.makeText(this, "Папка игры успешно привязана!", Toast.LENGTH_SHORT).show()
-            executeInstallAndLaunch()
-        } else {
-            binding.btnPlay.isEnabled = true
-            binding.tvStatus.text = "⚠️ Доступ к папке не был предоставлен"
         }
     }
 
@@ -85,14 +52,12 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Сбрасываем ошибочный путь media, если он сохранился
-        val saved = getSharedPreferences("nemos_prefs", MODE_PRIVATE).getString("saf_game_uri", null)
-        if (saved != null && saved.contains("media", ignoreCase = true)) {
-            getSharedPreferences("nemos_prefs", MODE_PRIVATE).edit().remove("saf_game_uri").apply()
-        }
-
         binding.tvSubInfo.text = "Ключ: ${sessionManager.getSavedKey()} • До: ${sessionManager.getExpiresAt()}"
-        binding.etSwapDelay.setText(sessionManager.getSwapDelaySeconds().toString())
+
+        setInstallMode(true)
+
+        binding.btnTabShizuku.setOnClickListener { setInstallMode(true) }
+        binding.btnTabMt.setOnClickListener { setInstallMode(false) }
 
         val initialPreset = sessionManager.getSelectedPresetId().ifBlank { "molodoy" }
         selectPreset(if (initialPreset == "fps_boost") "molodoy" else initialPreset)
@@ -112,21 +77,41 @@ class MainActivity : AppCompatActivity() {
             finish()
         }
 
-        binding.btnToggleSettings.setOnClickListener {
-            val isVisible = binding.layoutSettingsContent.visibility == View.VISIBLE
-            binding.layoutSettingsContent.visibility = if (isVisible) View.GONE else View.VISIBLE
-            binding.tvSettingsToggle.text = if (isVisible) "Показать ▼" else "Скрыть ▲"
+        binding.btnPrimaryAction.setOnClickListener {
+            if (isShizukuMode) {
+                handleShizukuInstallAndLaunch()
+            } else {
+                handleMtUnpack()
+            }
         }
 
-        binding.btnSaveSettings.setOnClickListener {
-            val sec = binding.etSwapDelay.text?.toString()?.toIntOrNull() ?: 17
-            sessionManager.setSwapDelaySeconds(sec.coerceIn(1, 120))
-            getSharedPreferences("nemos_prefs", MODE_PRIVATE).edit().remove("saf_game_uri").apply()
-            Toast.makeText(this, "Настройки сохранены. Путь к папке сброшен", Toast.LENGTH_SHORT).show()
+        binding.btnOpenMt.setOnClickListener {
+            openMtManager()
         }
 
-        binding.btnPlay.setOnClickListener {
-            checkAccessAndStart()
+        binding.btnLaunchGameDirect.setOnClickListener {
+            launchGrandMobile()
+        }
+    }
+
+    private fun setInstallMode(shizuku: Boolean) {
+        isShizukuMode = shizuku
+        if (shizuku) {
+            binding.btnTabShizuku.setBackgroundResource(R.drawable.bg_btn_primary)
+            binding.btnTabShizuku.setTextColor(getColor(android.R.color.white))
+            binding.btnTabMt.setBackgroundColor(0)
+            binding.btnTabMt.setTextColor(0xFFA1A1AA.toInt())
+            binding.btnPrimaryAction.text = "🚀 ИГРАТЬ С МОДАМИ (SHIZUKU)"
+            binding.layoutMtButtons.visibility = View.GONE
+            binding.tvStatus.text = "Режим: Автоматическая установка через Shizuku"
+        } else {
+            binding.btnTabMt.setBackgroundResource(R.drawable.bg_btn_primary)
+            binding.btnTabMt.setTextColor(getColor(android.R.color.white))
+            binding.btnTabShizuku.setBackgroundColor(0)
+            binding.btnTabShizuku.setTextColor(0xFFA1A1AA.toInt())
+            binding.btnPrimaryAction.text = "📦 РАСПАКОВАТЬ ДЛЯ MT MANAGER"
+            binding.layoutMtButtons.visibility = View.VISIBLE
+            binding.tvStatus.text = "Режим: Ручная вставка через MT Manager"
         }
     }
 
@@ -144,188 +129,118 @@ class MainActivity : AppCompatActivity() {
 
         binding.cardCustom.setBackgroundResource(if (presetId == "custom") R.drawable.bg_card_selected else R.drawable.bg_card_unselected)
         binding.tvBadgeCustom.visibility = if (presetId == "custom") View.VISIBLE else View.GONE
-
-        val title = when (presetId) {
-            "molodoy" -> "Сборка Molodoy"
-            "fps_boost" -> "FPS Boost"
-            "ghetto_pack" -> "Ghetto Pack"
-            else -> "Своя сборка (.ZIP)"
-        }
-        binding.tvStatus.text = "Выбрано: $title. Нажми «Играть с модами»"
     }
 
-    private fun getGrandPackage(): String {
-        val known = listOf("com.grandmobile.game", "ru.grandmobile.game", "com.grand.mobile", "com.weiz.grandmobile")
-        for (k in known) {
-            try {
-                packageManager.getPackageInfo(k, 0)
-                return k
-            } catch (_: Exception) {}
-        }
+    // --- Вариант А: Shizuku ---
+    private fun handleShizukuInstallAndLaunch() {
+        var isAlive = false
         try {
-            for (pkg in packageManager.getInstalledPackages(0)) {
-                val name = pkg.packageName
-                if (name.contains("grand", ignoreCase = true) && !name.contains("nemos", ignoreCase = true)) {
-                    return name
-                }
-            }
-        } catch (_: Exception) {}
-        return "com.grandmobile.game"
-    }
+            isAlive = Shizuku.pingBinder()
+        } catch (_: Throwable) {}
 
-    private fun checkAccessAndStart() {
-        val savedUri = getSavedTreeUri()
-        if (savedUri != null) {
-            executeInstallAndLaunch()
-        } else {
-            promptFolderAccess()
+        if (!isAlive) {
+            AlertDialog.Builder(this)
+                .setTitle("Shizuku не запущен")
+                .setMessage("Сервис Shizuku не активен на телефоне.\n\nВы можете:\n1. Запустить Shizuku (через Беспроводную отладку).\n2. Или переключить вкладку сверху на «📁 MT Manager» — там сборка распакуется без Shizuku.")
+                .setPositiveButton("Понятно", null)
+                .setNegativeButton("Переключить на MT") { _, _ -> setInstallMode(false) }
+                .show()
+            return
         }
-    }
 
-    private fun getSavedTreeUri(): Uri? {
-        val uriStr = getSharedPreferences("nemos_prefs", MODE_PRIVATE).getString("saf_game_uri", null) ?: return null
-        if (uriStr.contains("media", ignoreCase = true)) return null
-        val uri = Uri.parse(uriStr)
-        val hasPerm = contentResolver.persistedUriPermissions.any { it.uri == uri && it.isWritePermission }
-        return if (hasPerm) uri else null
-    }
+        if (Shizuku.checkSelfPermission() != PackageManager.PERMISSION_GRANTED) {
+            Shizuku.requestPermission(1001)
+            Toast.makeText(this, "Подтвердите разрешение для NEMOS APP в окне Shizuku", Toast.LENGTH_LONG).show()
+            return
+        }
 
-    private fun promptFolderAccess() {
-        val pkg = getGrandPackage()
-        AlertDialog.Builder(this)
-            .setTitle("📁 Выбор папки игры")
-            .setMessage("Сейчас откроется системный проводник.\n\nВАЖНО:\nЕсли откроется папка media — нажмите вверху на «Android», затем откройте «data» и найдите «$pkg».\n\nЗатем нажмите внизу «Использовать эту папку».")
-            .setPositiveButton("Понятно, открыть") { _, _ ->
-                val docUri = DocumentsContract.buildDocumentUri(
-                    "com.android.externalstorage.documents",
-                    "primary:Android/data/$pkg"
-                )
-                val intent = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE).apply {
-                    putExtra(DocumentsContract.EXTRA_INITIAL_URI, docUri)
-                    addFlags(
-                        Intent.FLAG_GRANT_READ_URI_PERMISSION or
-                        Intent.FLAG_GRANT_WRITE_URI_PERMISSION or
-                        Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION or
-                        Intent.FLAG_GRANT_PREFIX_URI_PERMISSION
-                    )
-                }
-                openFolderLauncher.launch(intent)
-            }
-            .setNegativeButton("Отмена", null)
-            .show()
-    }
-
-    private fun executeInstallAndLaunch() {
-        binding.btnPlay.isEnabled = false
-        binding.tvStatus.text = "⏳ Установка сборки в Grand Mobile..."
-
-        val preset = sessionManager.getSelectedPresetId()
-        val delaySec = sessionManager.getSwapDelaySeconds()
+        binding.btnPrimaryAction.isEnabled = false
+        binding.tvStatus.text = "⏳ Shizuku: заменяем файлы сборки..."
 
         lifecycleScope.launch {
-            val count = withContext(Dispatchers.IO) {
-                applyModsToGame(preset)
+            val preset = sessionManager.getSelectedPresetId()
+            val pkg = getGrandPackage()
+            val success = withContext(Dispatchers.IO) {
+                applyModsViaShizuku(preset, pkg)
             }
 
-            val launched = launchGrandMobile()
-            if (launched) {
-                binding.tvStatus.text = "✅ Сборка Molodoy установлена ($count файлов). Игра запущена!"
-                lifecycleScope.launch(Dispatchers.IO) {
-                    delay(delaySec * 1000L)
-                    applyModsToGame(preset)
-                }
+            if (success) {
+                binding.tvStatus.text = "✅ Сборка установлена! Запуск игры..."
+                launchGrandMobile()
             } else {
-                binding.tvStatus.text = "✅ Файлы сборки скопированы ($count), запустите Grand Mobile вручную"
+                binding.tvStatus.text = "❌ Ошибка копирования через Shizuku"
             }
-            binding.btnPlay.isEnabled = true
+            binding.btnPrimaryAction.isEnabled = true
         }
     }
 
-    private fun applyModsToGame(presetId: String): Int {
-        var count = 0
-        val pkg = getGrandPackage()
-        val treeUri = getSavedTreeUri()
-
-        if (treeUri != null) {
-            val rootDoc = DocumentFile.fromTreeUri(this, treeUri)
-            if (rootDoc != null) {
-                val targetDoc = resolveFilesDir(rootDoc, pkg)
-                openModStream(presetId)?.use { input ->
-                    count = copyZipToDocumentTree(input, targetDoc)
-                }
+    private fun applyModsViaShizuku(presetId: String, pkg: String): Boolean {
+        try {
+            val stagingDir = File(cacheDir, "shizuku_staging/files").apply {
+                deleteRecursively()
+                mkdirs()
             }
-        }
-
-        if (count == 0) {
-            val directDir = File(Environment.getExternalStorageDirectory(), "Android/data/$pkg/files")
-            if (directDir.exists() && directDir.canWrite()) {
-                openModStream(presetId)?.use { input ->
-                    count = extractZipToDirectDir(input, directDir)
-                }
+            openModStream(presetId)?.use { input ->
+                extractZipToDir(input, stagingDir)
             }
-        }
 
-        return count
+            val gameFilesPath = "/storage/emulated/0/Android/data/$pkg/files"
+            val cmd = "mkdir -p '$gameFilesPath' && cp -rf '${stagingDir.absolutePath}/.' '$gameFilesPath/'"
+            val proc = Shizuku.newProcess(arrayOf("sh", "-c", cmd), null, null)
+            proc.waitFor()
+            return proc.exitValue() == 0
+        } catch (e: Exception) {
+            return false
+        }
     }
 
-    private fun resolveFilesDir(rootDoc: DocumentFile, pkg: String): DocumentFile {
-        val name = rootDoc.name.orEmpty()
-        if (name.equals("files", ignoreCase = true)) return rootDoc
-        if (name.equals(pkg, ignoreCase = true) || name.contains("grand", ignoreCase = true)) {
-            return rootDoc.findFile("files") ?: rootDoc.createDirectory("files") ?: rootDoc
+    // --- Вариант Б: MT Manager Helper ---
+    private fun handleMtUnpack() {
+        binding.btnPrimaryAction.isEnabled = false
+        binding.tvStatus.text = "⏳ Распаковываем файлы сборки в загрузки..."
+
+        lifecycleScope.launch {
+            val preset = sessionManager.getSelectedPresetId()
+            val targetDir = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "Nemos_Mods/Molodoy/files")
+            val count = withContext(Dispatchers.IO) {
+                targetDir.mkdirs()
+                openModStream(preset)?.use { input ->
+                    extractZipToDir(input, targetDir)
+                } ?: 0
+            }
+
+            binding.btnPrimaryAction.isEnabled = true
+            binding.tvStatus.text = "✅ Распаковано $count файлов в Download/Nemos_Mods/"
+
+            AlertDialog.Builder(this@MainActivity)
+                .setTitle("✅ Сборка распакована!")
+                .setMessage("Папка с модами создана:\nDownload/Nemos_Mods/Molodoy/files\n\nИнструкция для MT Manager:\n1. Нажмите «Открыть MT Manager» ниже.\n2. Слева зайдите в: Download/Nemos_Mods/Molodoy/\n3. Справа зайдите в: Android/data/com.grandmobile.game/\n4. Зажмите папку files и скопируйте с заменой.\n5. Вернитесь в лаунчер и нажмите «Запустить Grand Mobile».")
+                .setPositiveButton("Открыть MT Manager") { _, _ -> openMtManager() }
+                .setNegativeButton("Понятно", null)
+                .show()
         }
-        if (name.equals("data", ignoreCase = true)) {
-            val pkgDir = rootDoc.findFile(pkg) ?: rootDoc.listFiles().firstOrNull { it.name?.contains("grand", true) == true } ?: rootDoc.createDirectory(pkg) ?: rootDoc
-            return pkgDir.findFile("files") ?: pkgDir.createDirectory("files") ?: pkgDir
-        }
-        val directFiles = rootDoc.findFile("files")
-        if (directFiles != null) return directFiles
-        val subGame = rootDoc.findFile(pkg) ?: rootDoc.listFiles().firstOrNull { it.name?.contains("grand", true) == true }
-        if (subGame != null) {
-            return subGame.findFile("files") ?: subGame.createDirectory("files") ?: subGame
-        }
-        return rootDoc
     }
 
-    private fun copyZipToDocumentTree(input: InputStream, targetDir: DocumentFile): Int {
-        var filesCopied = 0
-        ZipInputStream(input.buffered()).use { zis ->
-            var entry = zis.nextEntry
-            while (entry != null) {
-                if (!entry.isDirectory) {
-                    val rawName = entry.name.replace('\\', '/')
-                    val relPath = when {
-                        rawName.contains("files/") -> rawName.substringAfter("files/")
-                        rawName.startsWith("Molodoy/") -> rawName.removePrefix("Molodoy/")
-                        else -> rawName
-                    }.trimStart('/')
-
-                    if (relPath.isNotEmpty()) {
-                        val parts = relPath.split("/").filter { it.isNotEmpty() }
-                        var curr = targetDir
-                        for (i in 0 until parts.size - 1) {
-                            val dirName = parts[i]
-                            curr = curr.findFile(dirName) ?: curr.createDirectory(dirName) ?: curr
-                        }
-                        val fileName = parts.last()
-                        curr.findFile(fileName)?.delete()
-                        val newDoc = curr.createFile("application/octet-stream", fileName)
-                        if (newDoc != null) {
-                            contentResolver.openOutputStream(newDoc.uri)?.use { os ->
-                                zis.copyTo(os)
-                            }
-                            filesCopied++
-                        }
-                    }
-                }
-                zis.closeEntry()
-                entry = zis.nextEntry
+    private fun openMtManager() {
+        val mtPackages = listOf("bin.mt.plus", "bin.mt.plus.canary", "bin.mt.mmp")
+        for (pkg in mtPackages) {
+            val intent = packageManager.getLaunchIntentForPackage(pkg)
+            if (intent != null) {
+                startActivity(intent)
+                return
             }
         }
-        return filesCopied
+        val intent = Intent(Intent.ACTION_VIEW).apply {
+            setDataAndType(Uri.parse(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).path), "resource/folder")
+        }
+        try {
+            startActivity(intent)
+        } catch (_: Exception) {
+            Toast.makeText(this, "MT Manager не найден, откройте его вручную", Toast.LENGTH_SHORT).show()
+        }
     }
 
-    private fun extractZipToDirectDir(input: InputStream, targetDir: File): Int {
+    private fun extractZipToDir(input: InputStream, targetDir: File): Int {
         var count = 0
         val buffer = ByteArray(8192)
         ZipInputStream(input.buffered()).use { zis ->
@@ -380,6 +295,17 @@ class MainActivity : AppCompatActivity() {
         return null
     }
 
+    private fun getGrandPackage(): String {
+        val known = listOf("com.grandmobile.game", "ru.grandmobile.game", "com.grand.mobile", "com.weiz.grandmobile")
+        for (k in known) {
+            try {
+                packageManager.getPackageInfo(k, 0)
+                return k
+            } catch (_: Exception) {}
+        }
+        return "com.grandmobile.game"
+    }
+
     private fun launchGrandMobile(): Boolean {
         val pkg = getGrandPackage()
         val intent = packageManager.getLaunchIntentForPackage(pkg)
@@ -388,21 +314,7 @@ class MainActivity : AppCompatActivity() {
             startActivity(intent)
             return true
         }
-        val mainIntent = Intent(Intent.ACTION_MAIN, null).apply {
-            addCategory(Intent.CATEGORY_LAUNCHER)
-        }
-        for (info in packageManager.queryIntentActivities(mainIntent, 0)) {
-            val p = info.activityInfo.packageName
-            val label = info.loadLabel(packageManager)?.toString().orEmpty()
-            if ((p.contains("grand", true) || label.contains("grand", true)) && !p.contains("nemos", true)) {
-                val li = packageManager.getLaunchIntentForPackage(p)
-                if (li != null) {
-                    li.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    startActivity(li)
-                    return true
-                }
-            }
-        }
+        Toast.makeText(this, "Grand Mobile не найден на телефоне", Toast.LENGTH_SHORT).show()
         return false
     }
 }

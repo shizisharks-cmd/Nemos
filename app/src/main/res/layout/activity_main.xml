@@ -11,6 +11,7 @@
         android:orientation="vertical"
         android:padding="20dp">
 
+        <!-- Шапка -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -23,40 +24,83 @@
                 android:layout_weight="1"
                 android:text="⚡ NEMOS MODS"
                 android:textColor="#FFFFFF"
-                android:textSize="26sp"
+                android:textSize="24sp"
                 android:textStyle="bold" />
 
             <Button
                 android:id="@+id/btnLogout"
                 android:layout_width="wrap_content"
-                android:layout_height="38dp"
+                android:layout_height="36dp"
                 android:background="@drawable/bg_card_unselected"
-                android:paddingHorizontal="16dp"
+                android:paddingHorizontal="14dp"
                 android:text="Выйти"
                 android:textAllCaps="false"
                 android:textColor="#A1A1AA"
-                android:textSize="13sp" />
+                android:textSize="12sp" />
         </LinearLayout>
 
         <TextView
             android:id="@+id/tvSubInfo"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
+            android:layout_marginTop="4dp"
             android:text="Ключ: АКТИВЕН"
             android:textColor="#2DD4BF"
-            android:textSize="13sp"
+            android:textSize="12sp"
             android:textStyle="bold" />
 
+        <!-- Переключатель режима: Shizuku vs MT Manager -->
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="22dp"
+            android:layout_marginTop="18dp"
+            android:layout_marginBottom="8dp"
+            android:text="РЕЖИМ УСТАНОВКИ МОДОВ"
+            android:textColor="#A855F7"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:background="@drawable/bg_card_unselected"
+            android:orientation="horizontal"
+            android:padding="4dp">
+
+            <Button
+                android:id="@+id/btnTabShizuku"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@drawable/bg_btn_primary"
+                android:text="⚡ Авто (Shizuku)"
+                android:textAllCaps="false"
+                android:textColor="#FFFFFF"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+
+            <Button
+                android:id="@+id/btnTabMt"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:text="📁 MT Manager"
+                android:textAllCaps="false"
+                android:textColor="#A1A1AA"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- Выбор сборок -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
             android:layout_marginBottom="10dp"
-            android:letterSpacing="0.08"
             android:text="ВЫБЕРИ СБОРКУ"
             android:textColor="#A855F7"
-            android:textSize="13sp"
+            android:textSize="12sp"
             android:textStyle="bold" />
 
         <!-- Card: Molodoy -->
@@ -64,11 +108,11 @@
             android:id="@+id/cardMolodoy"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp"
+            android:layout_marginBottom="10dp"
             android:background="@drawable/bg_card_selected"
             android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:padding="18dp">
+            android:padding="16dp">
 
             <LinearLayout
                 android:layout_width="0dp"
@@ -81,16 +125,16 @@
                     android:layout_height="wrap_content"
                     android:text="🔥 Сборка Molodoy"
                     android:textColor="#FFFFFF"
-                    android:textSize="18sp"
+                    android:textSize="17sp"
                     android:textStyle="bold" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:text="Кастомный таймцикл и текстуры (Molodoy)"
+                    android:layout_marginTop="2dp"
+                    android:text="Кастомный таймцикл и текстуры"
                     android:textColor="#A1A1AA"
-                    android:textSize="13sp" />
+                    android:textSize="12sp" />
             </LinearLayout>
 
             <TextView
@@ -99,7 +143,7 @@
                 android:layout_height="wrap_content"
                 android:text="✓ ВЫБРАНО"
                 android:textColor="#2DD4BF"
-                android:textSize="12sp"
+                android:textSize="11sp"
                 android:textStyle="bold" />
         </LinearLayout>
 
@@ -108,11 +152,11 @@
             android:id="@+id/cardFps"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp"
+            android:layout_marginBottom="10dp"
             android:background="@drawable/bg_card_unselected"
             android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:padding="18dp">
+            android:padding="16dp">
 
             <LinearLayout
                 android:layout_width="0dp"
@@ -125,16 +169,16 @@
                     android:layout_height="wrap_content"
                     android:text="⚡ FPS Boost"
                     android:textColor="#FFFFFF"
-                    android:textSize="18sp"
+                    android:textSize="17sp"
                     android:textStyle="bold" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:text="Для слабых телефонов"
+                    android:layout_marginTop="2dp"
+                    android:text="Максимальный фпс для слабых устройств"
                     android:textColor="#A1A1AA"
-                    android:textSize="13sp" />
+                    android:textSize="12sp" />
             </LinearLayout>
 
             <TextView
@@ -143,7 +187,7 @@
                 android:layout_height="wrap_content"
                 android:text="✓ ВЫБРАНО"
                 android:textColor="#2DD4BF"
-                android:textSize="12sp"
+                android:textSize="11sp"
                 android:textStyle="bold"
                 android:visibility="gone" />
         </LinearLayout>
@@ -153,11 +197,11 @@
             android:id="@+id/cardGhetto"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp"
+            android:layout_marginBottom="10dp"
             android:background="@drawable/bg_card_unselected"
             android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:padding="18dp">
+            android:padding="16dp">
 
             <LinearLayout
                 android:layout_width="0dp"
@@ -170,16 +214,16 @@
                     android:layout_height="wrap_content"
                     android:text="🎯 Ghetto Pack"
                     android:textColor="#FFFFFF"
-                    android:textSize="18sp"
+                    android:textSize="17sp"
                     android:textStyle="bold" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:text="Звуки и эффекты стрельбы"
+                    android:layout_marginTop="2dp"
+                    android:text="Прицелы, звуки выстрелов и эффекты"
                     android:textColor="#A1A1AA"
-                    android:textSize="13sp" />
+                    android:textSize="12sp" />
             </LinearLayout>
 
             <TextView
@@ -188,7 +232,7 @@
                 android:layout_height="wrap_content"
                 android:text="✓ ВЫБРАНО"
                 android:textColor="#2DD4BF"
-                android:textSize="12sp"
+                android:textSize="11sp"
                 android:textStyle="bold"
                 android:visibility="gone" />
         </LinearLayout>
@@ -198,10 +242,10 @@
             android:id="@+id/cardCustom"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="20dp"
+            android:layout_marginBottom="18dp"
             android:background="@drawable/bg_card_unselected"
             android:orientation="vertical"
-            android:padding="18dp">
+            android:padding="16dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -218,19 +262,19 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="📦 Своя сборка (.ZIP)"
+                        android:text="📦 Свой ZIP-архив"
                         android:textColor="#FFFFFF"
-                        android:textSize="18sp"
+                        android:textSize="17sp"
                         android:textStyle="bold" />
 
                     <TextView
                         android:id="@+id/tvCustomZipName"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:text="Загрузи свой архив с модами"
+                        android:layout_marginTop="2dp"
+                        android:text="Выбрать архив из загрузок"
                         android:textColor="#A1A1AA"
-                        android:textSize="13sp" />
+                        android:textSize="12sp" />
                 </LinearLayout>
 
                 <TextView
@@ -239,7 +283,7 @@
                     android:layout_height="wrap_content"
                     android:text="✓ ВЫБРАНО"
                     android:textColor="#2DD4BF"
-                    android:textSize="12sp"
+                    android:textSize="11sp"
                     android:textStyle="bold"
                     android:visibility="gone" />
             </LinearLayout>
@@ -247,26 +291,59 @@
             <Button
                 android:id="@+id/btnPickZip"
                 android:layout_width="match_parent"
-                android:layout_height="44dp"
-                android:layout_marginTop="14dp"
+                android:layout_height="40dp"
+                android:layout_marginTop="10dp"
                 android:background="@drawable/bg_btn_outline"
-                android:text="📁 Выбрать .ZIP архив"
+                android:text="📁 Выбрать файл .zip"
+                android:textAllCaps="false"
+                android:textColor="#E9D5FF"
+                android:textSize="13sp" />
+        </LinearLayout>
+
+        <!-- Основная кнопка действия -->
+        <Button
+            android:id="@+id/btnPrimaryAction"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:background="@drawable/bg_btn_primary"
+            android:text="🚀 ИГРАТЬ С МОДАМИ (SHIZUKU)"
+            android:textAllCaps="true"
+            android:textColor="#FFFFFF"
+            android:textSize="15sp"
+            android:textStyle="bold" />
+
+        <!-- Дополнительные кнопки для режима MT Manager -->
+        <LinearLayout
+            android:id="@+id/layoutMtButtons"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <Button
+                android:id="@+id/btnOpenMt"
+                android:layout_width="match_parent"
+                android:layout_height="46dp"
+                android:background="@drawable/bg_btn_outline"
+                android:text="📲 Открыть MT Manager"
                 android:textAllCaps="false"
                 android:textColor="#E9D5FF"
                 android:textSize="14sp"
                 android:textStyle="bold" />
-        </LinearLayout>
 
-        <Button
-            android:id="@+id/btnPlay"
-            android:layout_width="match_parent"
-            android:layout_height="58dp"
-            android:background="@drawable/bg_btn_primary"
-            android:text="🚀 ИГРАТЬ С МОДАМИ"
-            android:textAllCaps="true"
-            android:textColor="#FFFFFF"
-            android:textSize="16sp"
-            android:textStyle="bold" />
+            <Button
+                android:id="@+id/btnLaunchGameDirect"
+                android:layout_width="match_parent"
+                android:layout_height="46dp"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/bg_card_unselected"
+                android:text="🎮 Запустить Grand Mobile"
+                android:textAllCaps="false"
+                android:textColor="#2DD4BF"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+        </LinearLayout>
 
         <TextView
             android:id="@+id/tvStatus"
@@ -274,84 +351,9 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
             android:gravity="center"
-            android:text="Сборка Molodoy готова к запуску"
+            android:text="Сборка готова к запуску"
             android:textColor="#A1A1AA"
             android:textSize="13sp" />
-
-        <!-- Settings Section -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="18dp"
-            android:background="@drawable/bg_card_unselected"
-            android:orientation="vertical"
-            android:padding="16dp">
-
-            <LinearLayout
-                android:id="@+id/btnToggleSettings"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="center_vertical"
-                android:orientation="horizontal">
-
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="⚙️ Настройки"
-                    android:textColor="#FFFFFF"
-                    android:textSize="15sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/tvSettingsToggle"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Показать ▼"
-                    android:textColor="#A855F7"
-                    android:textSize="13sp"
-                    android:textStyle="bold" />
-            </LinearLayout>
-
-            <LinearLayout
-                android:id="@+id/layoutSettingsContent"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="14dp"
-                android:orientation="vertical"
-                android:visibility="gone">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Задержка Hot-Swap (сек):"
-                    android:textColor="#A1A1AA"
-                    android:textSize="13sp" />
-
-                <EditText
-                    android:id="@+id/etSwapDelay"
-                    android:layout_width="match_parent"
-                    android:layout_height="44dp"
-                    android:layout_marginTop="6dp"
-                    android:background="@drawable/bg_btn_outline"
-                    android:inputType="number"
-                    android:paddingHorizontal="12dp"
-                    android:text="17"
-                    android:textColor="#FFFFFF"
-                    android:textSize="14sp" />
-
-                <Button
-                    android:id="@+id/btnSaveSettings"
-                    android:layout_width="match_parent"
-                    android:layout_height="44dp"
-                    android:layout_marginTop="10dp"
-                    android:background="@drawable/bg_btn_primary"
-                    android:text="Сохранить"
-                    android:textAllCaps="false"
-                    android:textColor="#FFFFFF"
-                    android:textSize="14sp" />
-            </LinearLayout>
-        </LinearLayout>
 
     </LinearLayout>
 </ScrollView>
