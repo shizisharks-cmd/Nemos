@@ -8,6 +8,7 @@ import android.provider.DocumentsContract
 import android.view.View
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.lifecycleScope
@@ -41,18 +42,33 @@ class MainActivity : AppCompatActivity() {
     private val openFolderLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         val uri = result.data?.data
         if (uri != null) {
+            val decoded = Uri.decode(uri.toString())
+            if (decoded.contains(":Android/media", ignoreCase = true) || decoded.endsWith("/media", ignoreCase = true) || decoded.contains("%2Fmedia", ignoreCase = true)) {
+                binding.btnPlay.isEnabled = true
+                binding.tvStatus.text = "❌ Выбрана папка media! Нужна папка com.grandmobile.game"
+                AlertDialog.Builder(this)
+                    .setTitle("Выбрана не та папка")
+                    .setMessage("Вы дали доступ к папке media. Моды должны устанавливаться в:\nAndroid ➔ data ➔ com.grandmobile.game\n\nНажмите «Повторить», чтобы выбрать верную папку.")
+                    .setPositiveButton("Повторить") { _, _ -> promptFolderAccess() }
+                    .setNegativeButton("Отмена", null)
+                    .show()
+                return@registerForActivityResult
+            }
+
             val flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
             try {
                 contentResolver.takePersistableUriPermission(uri, flags)
             } catch (_: Exception) {}
+
             getSharedPreferences("nemos_prefs", MODE_PRIVATE).edit()
                 .putString("saf_game_uri", uri.toString())
                 .apply()
-            Toast.makeText(this, "Папка игры привязана!", Toast.LENGTH_SHORT).show()
+
+            Toast.makeText(this, "Папка игры успешно привязана!", Toast.LENGTH_SHORT).show()
             executeInstallAndLaunch()
         } else {
             binding.btnPlay.isEnabled = true
-            binding.tvStatus.text = "⚠️ Нажми «Использовать эту папку» внизу экрана"
+            binding.tvStatus.text = "⚠️ Доступ к папке не был предоставлен"
         }
     }
 
@@ -68,6 +84,12 @@ class MainActivity : AppCompatActivity() {
 
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        // Сбрасываем ошибочный путь media, если он сохранился
+        val saved = getSharedPreferences("nemos_prefs", MODE_PRIVATE).getString("saf_game_uri", null)
+        if (saved != null && saved.contains("media", ignoreCase = true)) {
+            getSharedPreferences("nemos_prefs", MODE_PRIVATE).edit().remove("saf_game_uri").apply()
+        }
 
         binding.tvSubInfo.text = "Ключ: ${sessionManager.getSavedKey()} • До: ${sessionManager.getExpiresAt()}"
         binding.etSwapDelay.setText(sessionManager.getSwapDelaySeconds().toString())
@@ -100,7 +122,7 @@ class MainActivity : AppCompatActivity() {
             val sec = binding.etSwapDelay.text?.toString()?.toIntOrNull() ?: 17
             sessionManager.setSwapDelaySeconds(sec.coerceIn(1, 120))
             getSharedPreferences("nemos_prefs", MODE_PRIVATE).edit().remove("saf_game_uri").apply()
-            Toast.makeText(this, "Сохранено (путь к папке сброшен для перепривязки)", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Настройки сохранены. Путь к папке сброшен", Toast.LENGTH_SHORT).show()
         }
 
         binding.btnPlay.setOnClickListener {
@@ -132,28 +154,22 @@ class MainActivity : AppCompatActivity() {
         binding.tvStatus.text = "Выбрано: $title. Нажми «Играть с модами»"
     }
 
-    private fun detectGrandPackage(): String {
-        val candidates = listOf(
-            "com.grandmobile.game",
-            "ru.grandmobile.game",
-            "com.grand.mobile",
-            "com.weiz.grandmobile"
-        )
-        for (pkg in candidates) {
-            if (packageManager.getLaunchIntentForPackage(pkg) != null) return pkg
+    private fun getGrandPackage(): String {
+        val known = listOf("com.grandmobile.game", "ru.grandmobile.game", "com.grand.mobile", "com.weiz.grandmobile")
+        for (k in known) {
+            try {
+                packageManager.getPackageInfo(k, 0)
+                return k
+            } catch (_: Exception) {}
         }
-
-        val mainIntent = Intent(Intent.ACTION_MAIN, null).apply {
-            addCategory(Intent.CATEGORY_LAUNCHER)
-        }
-        val apps = packageManager.queryIntentActivities(mainIntent, 0)
-        for (info in apps) {
-            val pkg = info.activityInfo.packageName
-            val label = info.loadLabel(packageManager)?.toString().orEmpty()
-            if ((pkg.contains("grand", ignoreCase = true) || label.contains("grand", ignoreCase = true)) && !pkg.contains("nemos", ignoreCase = true)) {
-                return pkg
+        try {
+            for (pkg in packageManager.getInstalledPackages(0)) {
+                val name = pkg.packageName
+                if (name.contains("grand", ignoreCase = true) && !name.contains("nemos", ignoreCase = true)) {
+                    return name
+                }
             }
-        }
+        } catch (_: Exception) {}
         return "com.grandmobile.game"
     }
 
@@ -168,24 +184,35 @@ class MainActivity : AppCompatActivity() {
 
     private fun getSavedTreeUri(): Uri? {
         val uriStr = getSharedPreferences("nemos_prefs", MODE_PRIVATE).getString("saf_game_uri", null) ?: return null
-        if (!uriStr.contains("Android", ignoreCase = true) && !uriStr.contains("grand", ignoreCase = true)) {
-            return null
-        }
+        if (uriStr.contains("media", ignoreCase = true)) return null
         val uri = Uri.parse(uriStr)
         val hasPerm = contentResolver.persistedUriPermissions.any { it.uri == uri && it.isWritePermission }
         return if (hasPerm) uri else null
     }
 
     private fun promptFolderAccess() {
-        val pkg = detectGrandPackage()
-        Toast.makeText(this, "Нажми внизу синюю кнопку «Использовать эту папку»", Toast.LENGTH_LONG).show()
-        val encodedPath = Uri.encode("Android/data/$pkg/files")
-        val initialUri = Uri.parse("content://com.android.externalstorage.documents/document/primary%3A$encodedPath")
-        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE).apply {
-            putExtra(DocumentsContract.EXTRA_INITIAL_URI, initialUri)
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION or Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
-        }
-        openFolderLauncher.launch(intent)
+        val pkg = getGrandPackage()
+        AlertDialog.Builder(this)
+            .setTitle("📁 Выбор папки игры")
+            .setMessage("Сейчас откроется системный проводник.\n\nВАЖНО:\nЕсли откроется папка media — нажмите вверху на «Android», затем откройте «data» и найдите «$pkg».\n\nЗатем нажмите внизу «Использовать эту папку».")
+            .setPositiveButton("Понятно, открыть") { _, _ ->
+                val docUri = DocumentsContract.buildDocumentUri(
+                    "com.android.externalstorage.documents",
+                    "primary:Android/data/$pkg"
+                )
+                val intent = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE).apply {
+                    putExtra(DocumentsContract.EXTRA_INITIAL_URI, docUri)
+                    addFlags(
+                        Intent.FLAG_GRANT_READ_URI_PERMISSION or
+                        Intent.FLAG_GRANT_WRITE_URI_PERMISSION or
+                        Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION or
+                        Intent.FLAG_GRANT_PREFIX_URI_PERMISSION
+                    )
+                }
+                openFolderLauncher.launch(intent)
+            }
+            .setNegativeButton("Отмена", null)
+            .show()
     }
 
     private fun executeInstallAndLaunch() {
@@ -202,13 +229,13 @@ class MainActivity : AppCompatActivity() {
 
             val launched = launchGrandMobile()
             if (launched) {
-                binding.tvStatus.text = "✅ Сборка активна ($count файлов). Игра запущена!"
+                binding.tvStatus.text = "✅ Сборка Molodoy установлена ($count файлов). Игра запущена!"
                 lifecycleScope.launch(Dispatchers.IO) {
                     delay(delaySec * 1000L)
                     applyModsToGame(preset)
                 }
             } else {
-                binding.tvStatus.text = "⚠️ Файлы записаны ($count), но игра не найдена"
+                binding.tvStatus.text = "✅ Файлы сборки скопированы ($count), запустите Grand Mobile вручную"
             }
             binding.btnPlay.isEnabled = true
         }
@@ -216,7 +243,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun applyModsToGame(presetId: String): Int {
         var count = 0
-        val pkg = detectGrandPackage()
+        val pkg = getGrandPackage()
         val treeUri = getSavedTreeUri()
 
         if (treeUri != null) {
@@ -244,12 +271,18 @@ class MainActivity : AppCompatActivity() {
     private fun resolveFilesDir(rootDoc: DocumentFile, pkg: String): DocumentFile {
         val name = rootDoc.name.orEmpty()
         if (name.equals("files", ignoreCase = true)) return rootDoc
-        if (name.contains("grand", ignoreCase = true)) {
+        if (name.equals(pkg, ignoreCase = true) || name.contains("grand", ignoreCase = true)) {
             return rootDoc.findFile("files") ?: rootDoc.createDirectory("files") ?: rootDoc
         }
         if (name.equals("data", ignoreCase = true)) {
             val pkgDir = rootDoc.findFile(pkg) ?: rootDoc.listFiles().firstOrNull { it.name?.contains("grand", true) == true } ?: rootDoc.createDirectory(pkg) ?: rootDoc
             return pkgDir.findFile("files") ?: pkgDir.createDirectory("files") ?: pkgDir
+        }
+        val directFiles = rootDoc.findFile("files")
+        if (directFiles != null) return directFiles
+        val subGame = rootDoc.findFile(pkg) ?: rootDoc.listFiles().firstOrNull { it.name?.contains("grand", true) == true }
+        if (subGame != null) {
+            return subGame.findFile("files") ?: subGame.createDirectory("files") ?: subGame
         }
         return rootDoc
     }
@@ -331,11 +364,9 @@ class MainActivity : AppCompatActivity() {
                 return contentResolver.openInputStream(customZipUri!!)
             } catch (_: Exception) {}
         }
-
         try {
             return assets.open("molodoy.zip")
         } catch (_: Exception) {}
-
         val candidates = listOf(
             File("/sdcard/Download/molodoy_pack.zip"),
             File("/sdcard/Download/sb dlya Molodoy (1) - Копия - Копия.zip"),
@@ -350,12 +381,27 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun launchGrandMobile(): Boolean {
-        val pkg = detectGrandPackage()
+        val pkg = getGrandPackage()
         val intent = packageManager.getLaunchIntentForPackage(pkg)
         if (intent != null) {
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             startActivity(intent)
             return true
+        }
+        val mainIntent = Intent(Intent.ACTION_MAIN, null).apply {
+            addCategory(Intent.CATEGORY_LAUNCHER)
+        }
+        for (info in packageManager.queryIntentActivities(mainIntent, 0)) {
+            val p = info.activityInfo.packageName
+            val label = info.loadLabel(packageManager)?.toString().orEmpty()
+            if ((p.contains("grand", true) || label.contains("grand", true)) && !p.contains("nemos", true)) {
+                val li = packageManager.getLaunchIntentForPackage(p)
+                if (li != null) {
+                    li.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    startActivity(li)
+                    return true
+                }
+            }
         }
         return false
     }
