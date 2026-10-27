@@ -26,10 +26,10 @@
         android:supportsRtl="true"
         android:usesCleartextTraffic="true"
         android:requestLegacyExternalStorage="true"
-        android:theme="@style/Theme.AppCompat.NoActionBar">
+        android:theme="@style/Theme.MaterialComponents.DayNight.NoActionBar">
 
         <activity
-            android:name=".ui.AuthActivity"
+            android:name="com.nemos.app.ui.AuthActivity"
             android:exported="true"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
@@ -39,7 +39,7 @@
         </activity>
 
         <activity
-            android:name=".ui.MainActivity"
+            android:name="com.nemos.app.ui.MainActivity"
             android:exported="false" />
     </application>
 
