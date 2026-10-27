@@ -4,6 +4,16 @@ plugins {
 }
 
 android {
+    namespace 'com.nemos.app'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "com.nemos.app"
+        minSdk 24
+        targetSdk 34
+        versionCode 1
+        versionName "1.0"
+    }
 
     signingConfigs {
         release {
@@ -24,39 +34,28 @@ android {
         }
     }
 
-    namespace 'com.nemos.app'
-    compileSdk 34
-
-    defaultConfig {
-        applicationId "com.nemos.app"
-        minSdk 26
-        targetSdk 34
-        versionCode 100
-        versionName "1.0.0"
-
-        // Базовый URL лицензионного сервера на Wispbyte (можно также изменить прямо в UI приложения)
-        buildConfigField "String", "DEFAULT_BASE_URL", '"http://your-wispbyte-server.wisp.uno:8000"'
-        buildConfigField "String", "TARGET_GAME_PACKAGE", '"com.grandmobile.game"'
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
     }
 
-    
+    kotlinOptions {
+        jvmTarget = '17'
+    }
 
-    
+    buildFeatures {
+        viewBinding true
+    }
+}
 
 dependencies {
-    implementation 'androidx.core:core-ktx:1.13.1'
-    implementation 'androidx.appcompat:appcompat:1.7.0'
-    implementation 'com.google.android.material:material:1.12.0'
+    implementation 'androidx.core:core-ktx:1.12.0'
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'com.google.android.material:material:1.11.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
-    implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.8.4'
+    implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.7.0'
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
 
-    // Корутины для фоновых задач и таймера Hot-Swap
-    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1'
-
-    // OkHttp для сетевых запросов POST /api/v1/license/verify
-    implementation 'com.squareup.okhttp3:okhttp:4.12.0'
-
-    // Shizuku API (RikkaApps) для привилегированного доступа к /Android/data/com.grandmobile.game/files/
     implementation 'dev.rikka.shizuku:api:13.1.5'
     implementation 'dev.rikka.shizuku:provider:13.1.5'
 }
