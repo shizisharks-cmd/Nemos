@@ -1,319 +1,87 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="#0B0B12"
-    android:fillViewport="true">
+<ScrollView android:background="#0B0B12" android:fillViewport="true" android:layout_height="match_parent" android:layout_width="match_parent" xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="20dp">
+    <LinearLayout android:layout_height="wrap_content" android:layout_width="match_parent" android:orientation="vertical" android:padding="20dp">
 
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center_vertical"
-            android:orientation="horizontal">
+        <LinearLayout android:gravity="center_vertical" android:layout_height="wrap_content" android:layout_width="match_parent" android:orientation="horizontal">
 
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="⚡ NEMOS MODS"
-                android:textColor="#FFFFFF"
-                android:textSize="24sp"
-                android:textStyle="bold" />
+            <TextView android:layout_height="wrap_content" android:layout_weight="1" android:layout_width="0dp" android:text="⚡ NEMOS MODS" android:textColor="#FFFFFF" android:textSize="24sp" android:textStyle="bold"/>
 
-            <Button
-                android:id="@+id/btnLogout"
-                android:layout_width="wrap_content"
-                android:layout_height="36dp"
-                android:background="@drawable/bg_card_unselected"
-                android:paddingHorizontal="14dp"
-                android:text="Выйти"
-                android:textAllCaps="false"
-                android:textColor="#A1A1AA"
-                android:textSize="12sp" />
+            <Button android:background="@drawable/bg_card_unselected" android:id="@+id/btnLogout" android:layout_height="36dp" android:layout_width="wrap_content" android:paddingHorizontal="14dp" android:text="Выйти" android:textAllCaps="false" android:textColor="#A1A1AA" android:textSize="12sp"/>
         </LinearLayout>
 
-        <TextView
-            android:id="@+id/tvSubInfo"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:text="Ключ: АКТИВЕН"
-            android:textColor="#2DD4BF"
-            android:textSize="12sp"
-            android:textStyle="bold" />
+        <LinearLayout android:gravity="center_vertical" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:layout_width="match_parent" android:orientation="horizontal">
 
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
-            android:layout_marginBottom="10dp"
-            android:text="1. ВЫБЕРИ СБОРКУ"
-            android:textColor="#A855F7"
-            android:textSize="12sp"
-            android:textStyle="bold" />
+            <TextView android:id="@+id/tvSubInfo" android:layout_height="wrap_content" android:layout_weight="1" android:layout_width="0dp" android:text="Ключ: АКТИВЕН" android:textColor="#2DD4BF" android:textSize="12sp" android:textStyle="bold"/>
 
-        <LinearLayout
-            android:id="@+id/cardMolodoy"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="10dp"
-            android:background="@drawable/bg_card_selected"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:padding="16dp">
+            <TextView android:id="@+id/tvShizukuBadge" android:layout_height="wrap_content" android:layout_width="wrap_content" android:text="⏳ Проверка режима..." android:textColor="#A1A1AA" android:textSize="12sp" android:textStyle="bold"/>
+        </LinearLayout>
 
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical">
+        <TextView android:layout_height="wrap_content" android:layout_marginBottom="10dp" android:layout_marginTop="20dp" android:layout_width="match_parent" android:text="ВЫБЕРИ СБОРКУ" android:textColor="#A855F7" android:textSize="12sp" android:textStyle="bold"/>
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="🔥 Сборка Molodoy"
-                    android:textColor="#FFFFFF"
-                    android:textSize="17sp"
-                    android:textStyle="bold" />
+        <LinearLayout android:background="@drawable/bg_card_selected" android:gravity="center_vertical" android:id="@+id/cardMolodoy" android:layout_height="wrap_content" android:layout_marginBottom="10dp" android:layout_width="match_parent" android:orientation="horizontal" android:padding="16dp">
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="2dp"
-                    android:text="Кастомный таймцикл и реалистичные текстуры"
-                    android:textColor="#A1A1AA"
-                    android:textSize="12sp" />
+            <LinearLayout android:layout_height="wrap_content" android:layout_weight="1" android:layout_width="0dp" android:orientation="vertical">
+
+                <TextView android:layout_height="wrap_content" android:layout_width="wrap_content" android:text="🔥 Сборка Molodoy" android:textColor="#FFFFFF" android:textSize="17sp" android:textStyle="bold"/>
+
+                <TextView android:layout_height="wrap_content" android:layout_marginTop="2dp" android:layout_width="wrap_content" android:text="Кастомный таймцикл и реалистичные текстуры" android:textColor="#A1A1AA" android:textSize="12sp"/>
             </LinearLayout>
 
-            <TextView
-                android:id="@+id/tvBadgeMolodoy"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="✓ ВЫБРАНО"
-                android:textColor="#2DD4BF"
-                android:textSize="11sp"
-                android:textStyle="bold" />
+            <TextView android:id="@+id/tvBadgeMolodoy" android:layout_height="wrap_content" android:layout_width="wrap_content" android:text="✓ ВЫБРАНО" android:textColor="#2DD4BF" android:textSize="11sp" android:textStyle="bold"/>
         </LinearLayout>
 
-        <LinearLayout
-            android:id="@+id/cardFps"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="10dp"
-            android:background="@drawable/bg_card_unselected"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:padding="16dp">
+        <LinearLayout android:background="@drawable/bg_card_unselected" android:gravity="center_vertical" android:id="@+id/cardFps" android:layout_height="wrap_content" android:layout_marginBottom="10dp" android:layout_width="match_parent" android:orientation="horizontal" android:padding="16dp">
 
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical">
+            <LinearLayout android:layout_height="wrap_content" android:layout_weight="1" android:layout_width="0dp" android:orientation="vertical">
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="⚡ FPS Boost"
-                    android:textColor="#FFFFFF"
-                    android:textSize="17sp"
-                    android:textStyle="bold" />
+                <TextView android:layout_height="wrap_content" android:layout_width="wrap_content" android:text="⚡ FPS Boost" android:textColor="#FFFFFF" android:textSize="17sp" android:textStyle="bold"/>
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="2dp"
-                    android:text="Максимальный буст FPS для слабых телефонов"
-                    android:textColor="#A1A1AA"
-                    android:textSize="12sp" />
+                <TextView android:layout_height="wrap_content" android:layout_marginTop="2dp" android:layout_width="wrap_content" android:text="Максимум FPS для слабых телефонов" android:textColor="#A1A1AA" android:textSize="12sp"/>
             </LinearLayout>
 
-            <TextView
-                android:id="@+id/tvBadgeFps"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="✓ ВЫБРАНО"
-                android:textColor="#2DD4BF"
-                android:textSize="11sp"
-                android:textStyle="bold"
-                android:visibility="gone" />
+            <TextView android:id="@+id/tvBadgeFps" android:layout_height="wrap_content" android:layout_width="wrap_content" android:text="✓ ВЫБРАНО" android:textColor="#2DD4BF" android:textSize="11sp" android:textStyle="bold" android:visibility="gone"/>
         </LinearLayout>
 
-        <LinearLayout
-            android:id="@+id/cardGhetto"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="10dp"
-            android:background="@drawable/bg_card_unselected"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:padding="16dp">
+        <LinearLayout android:background="@drawable/bg_card_unselected" android:gravity="center_vertical" android:id="@+id/cardGhetto" android:layout_height="wrap_content" android:layout_marginBottom="10dp" android:layout_width="match_parent" android:orientation="horizontal" android:padding="16dp">
 
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical">
+            <LinearLayout android:layout_height="wrap_content" android:layout_weight="1" android:layout_width="0dp" android:orientation="vertical">
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="🎯 Ghetto Pack"
-                    android:textColor="#FFFFFF"
-                    android:textSize="17sp"
-                    android:textStyle="bold" />
+                <TextView android:layout_height="wrap_content" android:layout_width="wrap_content" android:text="🎯 Ghetto Pack" android:textColor="#FFFFFF" android:textSize="17sp" android:textStyle="bold"/>
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="2dp"
-                    android:text="Прицелы, звуки выстрелов и трассера"
-                    android:textColor="#A1A1AA"
-                    android:textSize="12sp" />
+                <TextView android:layout_height="wrap_content" android:layout_marginTop="2dp" android:layout_width="wrap_content" android:text="Прицелы, звуки выстрелов и эффекты" android:textColor="#A1A1AA" android:textSize="12sp"/>
             </LinearLayout>
 
-            <TextView
-                android:id="@+id/tvBadgeGhetto"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="✓ ВЫБРАНО"
-                android:textColor="#2DD4BF"
-                android:textSize="11sp"
-                android:textStyle="bold"
-                android:visibility="gone" />
+            <TextView android:id="@+id/tvBadgeGhetto" android:layout_height="wrap_content" android:layout_width="wrap_content" android:text="✓ ВЫБРАНО" android:textColor="#2DD4BF" android:textSize="11sp" android:textStyle="bold" android:visibility="gone"/>
         </LinearLayout>
 
-        <LinearLayout
-            android:id="@+id/cardCustom"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="20dp"
-            android:background="@drawable/bg_card_unselected"
-            android:orientation="vertical"
-            android:padding="16dp">
+        <LinearLayout android:background="@drawable/bg_card_unselected" android:id="@+id/cardCustom" android:layout_height="wrap_content" android:layout_marginBottom="24dp" android:layout_width="match_parent" android:orientation="vertical" android:padding="16dp">
 
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="center_vertical"
-                android:orientation="horizontal">
+            <LinearLayout android:gravity="center_vertical" android:layout_height="wrap_content" android:layout_width="match_parent" android:orientation="horizontal">
 
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:orientation="vertical">
+                <LinearLayout android:layout_height="wrap_content" android:layout_weight="1" android:layout_width="0dp" android:orientation="vertical">
 
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="📦 Свой ZIP-архив"
-                        android:textColor="#FFFFFF"
-                        android:textSize="17sp"
-                        android:textStyle="bold" />
+                    <TextView android:layout_height="wrap_content" android:layout_width="wrap_content" android:text="📦 Свой ZIP-архив" android:textColor="#FFFFFF" android:textSize="17sp" android:textStyle="bold"/>
 
-                    <TextView
-                        android:id="@+id/tvCustomZipName"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="2dp"
-                        android:text="Выбрать архив из папки Загрузки"
-                        android:textColor="#A1A1AA"
-                        android:textSize="12sp" />
+                    <TextView android:id="@+id/tvCustomZipName" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:layout_width="wrap_content" android:text="Выбрать архив из загрузок" android:textColor="#A1A1AA" android:textSize="12sp"/>
                 </LinearLayout>
 
-                <TextView
-                    android:id="@+id/tvBadgeCustom"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="✓ ВЫБРАНО"
-                    android:textColor="#2DD4BF"
-                    android:textSize="11sp"
-                    android:textStyle="bold"
-                    android:visibility="gone" />
+                <TextView android:id="@+id/tvBadgeCustom" android:layout_height="wrap_content" android:layout_width="wrap_content" android:text="✓ ВЫБРАНО" android:textColor="#2DD4BF" android:textSize="11sp" android:textStyle="bold" android:visibility="gone"/>
             </LinearLayout>
 
-            <Button
-                android:id="@+id/btnPickZip"
-                android:layout_width="match_parent"
-                android:layout_height="40dp"
-                android:layout_marginTop="10dp"
-                android:background="@drawable/bg_btn_outline"
-                android:text="📁 Выбрать файл .zip"
-                android:textAllCaps="false"
-                android:textColor="#E9D5FF"
-                android:textSize="13sp" />
+            <Button android:background="@drawable/bg_btn_outline" android:id="@+id/btnPickZip" android:layout_height="40dp" android:layout_marginTop="10dp" android:layout_width="match_parent" android:text="📁 Выбрать файл .zip" android:textAllCaps="false" android:textColor="#E9D5FF" android:textSize="13sp"/>
         </LinearLayout>
 
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="10dp"
-            android:text="2. ДЕЙСТВИЯ"
-            android:textColor="#A855F7"
-            android:textSize="12sp"
-            android:textStyle="bold" />
+        <Button android:background="@drawable/bg_btn_primary" android:id="@+id/btnPrimaryAction" android:layout_height="56dp" android:layout_width="match_parent" android:text="🚀 УСТАНОВИТЬ И ИГРАТЬ" android:textAllCaps="true" android:textColor="#FFFFFF" android:textSize="15sp" android:textStyle="bold"/>
 
-        <Button
-            android:id="@+id/btnUnpack"
-            android:layout_width="match_parent"
-            android:layout_height="54dp"
-            android:background="@drawable/bg_btn_primary"
-            android:text="📦 РАСПАКОВАТЬ СБОРКУ"
-            android:textAllCaps="true"
-            android:textColor="#FFFFFF"
-            android:textSize="15sp"
-            android:textStyle="bold" />
+        <LinearLayout android:id="@+id/layoutMtOptions" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:layout_width="match_parent" android:orientation="horizontal" android:visibility="gone">
 
-        <LinearLayout
-            android:id="@+id/layoutActionButtons"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:orientation="horizontal">
+            <Button android:background="@drawable/bg_btn_outline" android:id="@+id/btnOpenMt" android:layout_height="46dp" android:layout_marginEnd="6dp" android:layout_weight="1" android:layout_width="0dp" android:text="📂 MT Manager" android:textAllCaps="false" android:textColor="#E9D5FF" android:textSize="13sp"/>
 
-            <Button
-                android:id="@+id/btnOpenMt"
-                android:layout_width="0dp"
-                android:layout_height="48dp"
-                android:layout_marginEnd="6dp"
-                android:layout_weight="1"
-                android:background="@drawable/bg_btn_outline"
-                android:text="📂 MT MANAGER"
-                android:textAllCaps="false"
-                android:textColor="#E9D5FF"
-                android:textSize="13sp"
-                android:textStyle="bold" />
-
-            <Button
-                android:id="@+id/btnLaunchGame"
-                android:layout_width="0dp"
-                android:layout_height="48dp"
-                android:layout_marginStart="6dp"
-                android:layout_weight="1"
-                android:background="@drawable/bg_card_selected"
-                android:text="🚀 В ИГРУ"
-                android:textAllCaps="false"
-                android:textColor="#FFFFFF"
-                android:textSize="13sp"
-                android:textStyle="bold" />
+            <Button android:background="@drawable/bg_card_selected" android:id="@+id/btnLaunchGame" android:layout_height="46dp" android:layout_marginStart="6dp" android:layout_weight="1" android:layout_width="0dp" android:text="🎮 В игру" android:textAllCaps="false" android:textColor="#FFFFFF" android:textSize="13sp" android:textStyle="bold"/>
         </LinearLayout>
 
-        <TextView
-            android:id="@+id/tvStatus"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="14dp"
-            android:gravity="center"
-            android:text="Сборка готова к распаковке"
-            android:textColor="#A1A1AA"
-            android:textSize="13sp" />
+        <TextView android:gravity="center" android:id="@+id/tvStatus" android:layout_height="wrap_content" android:layout_marginTop="14dp" android:layout_width="match_parent" android:text="Готово к установке" android:textColor="#A1A1AA" android:textSize="13sp"/>
 
     </LinearLayout>
 </ScrollView>

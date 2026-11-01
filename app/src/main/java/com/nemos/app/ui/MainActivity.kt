@@ -1,13 +1,14 @@
 package com.nemos.app.ui
 
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
 import android.provider.Settings
-import android.widget.Toast
 import android.view.View
+import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -18,10 +19,12 @@ import com.nemos.app.databinding.ActivityMainBinding
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import rikka.shizuku.Shizuku
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.io.InputStream
+import java.lang.reflect.Method
 import java.util.zip.ZipInputStream
 
 class MainActivity : AppCompatActivity() {
@@ -29,6 +32,18 @@ class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private lateinit var sessionManager: SessionManager
     private var customZipUri: Uri? = null
+
+    private val binderReceivedListener = Shizuku.OnBinderReceivedListener {
+        runOnUiThread { updateUiMode() }
+    }
+
+    private val binderDeadListener = Shizuku.OnBinderDeadListener {
+        runOnUiThread { updateUiMode() }
+    }
+
+    private val permissionResultListener = Shizuku.OnRequestPermissionResultListener { _, _ ->
+        runOnUiThread { updateUiMode() }
+    }
 
     private val pickZipLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         if (uri != null) {
@@ -71,8 +86,12 @@ class MainActivity : AppCompatActivity() {
             finish()
         }
 
-        binding.btnUnpack.setOnClickListener {
-            checkStoragePermissionAndUnpack()
+        binding.btnPrimaryAction.setOnClickListener {
+            if (isShizukuAvailable()) {
+                handleShizukuInstall()
+            } else {
+                handleMtUnpack()
+            }
         }
 
         binding.btnOpenMt.setOnClickListener {
@@ -81,6 +100,72 @@ class MainActivity : AppCompatActivity() {
 
         binding.btnLaunchGame.setOnClickListener {
             launchGrandMobile()
+        }
+
+        binding.tvShizukuBadge.setOnClickListener {
+            if (!isShizukuAvailable()) {
+                AlertDialog.Builder(this)
+                    .setTitle("⚡ Как включить Турбо-режим?")
+                    .setMessage("В Турбо-режиме моды устанавливаются в 1 клик без MT Manager.\n\nДля включения:\n1. Подключите телефон к Wi-Fi.\n2. Откройте приложение Shizuku.\n3. Нажмите «Запустить» через отладку по Wi-Fi.\n\nЕсли Wi-Fi нет — пользуйтесь режимом MT Manager.")
+                    .setPositiveButton("Понятно", null)
+                    .show()
+            }
+        }
+
+        try {
+            Shizuku.addBinderReceivedListenerSticky(binderReceivedListener)
+            Shizuku.addBinderDeadListener(binderDeadListener)
+            Shizuku.addRequestPermissionResultListener(permissionResultListener)
+        } catch (_: Throwable) {}
+
+        updateUiMode()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        updateUiMode()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        try {
+            Shizuku.removeBinderReceivedListener(binderReceivedListener)
+            Shizuku.removeBinderDeadListener(binderDeadListener)
+            Shizuku.removeRequestPermissionResultListener(permissionResultListener)
+        } catch (_: Throwable) {}
+    }
+
+    private fun isShizukuAvailable(): Boolean {
+        return try {
+            Shizuku.pingBinder()
+        } catch (_: Throwable) {
+            false
+        }
+    }
+
+    private fun hasShizukuPermission(): Boolean {
+        return try {
+            Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED
+        } catch (_: Throwable) {
+            false
+        }
+    }
+
+    private fun updateUiMode() {
+        val alive = isShizukuAvailable()
+        if (alive) {
+            val perm = hasShizukuPermission()
+            binding.tvShizukuBadge.text = if (perm) "🟢 1-клик (Турбо активен)" else "🟡 1-клик (Требуется разрешение)"
+            binding.tvShizukuBadge.setTextColor(if (perm) 0xFF2DD4BF.toInt() else 0xFFF59E0B.toInt())
+            binding.btnPrimaryAction.text = "🚀 УСТАНОВИТЬ И ИГРАТЬ (1 КЛИК)"
+            binding.layoutMtOptions.visibility = View.GONE
+            binding.tvStatus.text = "Турбо-режим: установка модов в 1 клик через Shizuku"
+        } else {
+            binding.tvShizukuBadge.text = "⚪ Режим MT Manager (без Wi-Fi)"
+            binding.tvShizukuBadge.setTextColor(0xFFA1A1AA.toInt())
+            binding.btnPrimaryAction.text = "📦 РАСПАКОВАТЬ ДЛЯ MT MANAGER"
+            binding.layoutMtOptions.visibility = View.VISIBLE
+            binding.tvStatus.text = "Режим без Wi-Fi: распаковка в Загрузки для вставки в игре"
         }
     }
 
@@ -100,12 +185,72 @@ class MainActivity : AppCompatActivity() {
         binding.tvBadgeCustom.visibility = if (presetId == "custom") View.VISIBLE else View.GONE
     }
 
-    private fun checkStoragePermissionAndUnpack() {
+    private fun handleShizukuInstall() {
+        if (!hasShizukuPermission()) {
+            try {
+                Shizuku.requestPermission(1001)
+                Toast.makeText(this, "Подтвердите доступ в окне Shizuku", Toast.LENGTH_SHORT).show()
+            } catch (_: Throwable) {
+                Toast.makeText(this, "Не удалось запросить доступ Shizuku", Toast.LENGTH_SHORT).show()
+            }
+            return
+        }
+
+        binding.btnPrimaryAction.isEnabled = false
+        binding.tvStatus.text = "⏳ Shizuku: заменяем файлы сборки..."
+
+        lifecycleScope.launch {
+            val preset = sessionManager.getSelectedPresetId()
+            val pkg = getGrandPackage()
+            val success = withContext(Dispatchers.IO) {
+                applyModsViaShizuku(preset, pkg)
+            }
+
+            binding.btnPrimaryAction.isEnabled = true
+            if (success) {
+                binding.tvStatus.text = "✅ Сборка установлена! Запуск игры..."
+                launchGrandMobile()
+            } else {
+                binding.tvStatus.text = "❌ Ошибка копирования через Shizuku"
+                Toast.makeText(this@MainActivity, "Ошибка копирования файлов через Shizuku", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun applyModsViaShizuku(presetId: String, pkg: String): Boolean {
+        try {
+            val stagingDir = File(cacheDir, "shizuku_staging/files").apply {
+                deleteRecursively()
+                mkdirs()
+            }
+            openModStream(presetId)?.use { input ->
+                extractZipToDir(input, stagingDir)
+            }
+
+            val gameFilesPath = "/storage/emulated/0/Android/data/$pkg/files"
+            val cmd = "mkdir -p '$gameFilesPath' && cp -rf '${stagingDir.absolutePath}/.' '$gameFilesPath/'"
+
+            val method: Method = Shizuku::class.java.getDeclaredMethod(
+                "newProcess",
+                Array<String>::class.java,
+                Array<String>::class.java,
+                String::class.java
+            )
+            method.isAccessible = true
+            val proc = method.invoke(null, arrayOf("sh", "-c", cmd), null, null) as Process
+            proc.waitFor()
+            return proc.exitValue() == 0
+        } catch (_: Exception) {
+            return false
+        }
+    }
+
+    private fun handleMtUnpack() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             if (!Environment.isExternalStorageManager()) {
                 AlertDialog.Builder(this)
-                    .setTitle("Разрешение на файлы")
-                    .setMessage("Для распаковки сборки в папку Загрузки необходимо предоставить доступ к файлам.")
+                    .setTitle("Доступ к памяти")
+                    .setMessage("Для распаковки файлов в папку Загрузки необходимо предоставить доступ.")
                     .setPositiveButton("Включить") { _, _ ->
                         try {
                             val intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION).apply {
@@ -121,12 +266,9 @@ class MainActivity : AppCompatActivity() {
                 return
             }
         }
-        startUnpackingProcess()
-    }
 
-    private fun startUnpackingProcess() {
-        binding.btnUnpack.isEnabled = false
-        binding.tvStatus.text = "⏳ Распаковываем файлы сборки..."
+        binding.btnPrimaryAction.isEnabled = false
+        binding.tvStatus.text = "⏳ Распаковываем файлы сборки в Загрузки..."
 
         lifecycleScope.launch {
             val preset = sessionManager.getSelectedPresetId()
@@ -144,11 +286,11 @@ class MainActivity : AppCompatActivity() {
                 }
             }
 
-            binding.btnUnpack.isEnabled = true
+            binding.btnPrimaryAction.isEnabled = true
 
             if (count > 0) {
-                binding.tvStatus.text = "✅ Успешно распаковано $count файлов!"
-                showInstructionDialog()
+                binding.tvStatus.text = "✅ Распаковано $count файлов в Download/Nemos_Mods/"
+                showMtGuideDialog()
             } else {
                 binding.tvStatus.text = "❌ Ошибка распаковки архива"
                 Toast.makeText(this@MainActivity, "Не удалось извлечь файлы", Toast.LENGTH_SHORT).show()
@@ -156,11 +298,12 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun showInstructionDialog() {
+    private fun showMtGuideDialog() {
         AlertDialog.Builder(this)
             .setTitle("✅ Сборка готова в Загрузках!")
-            .setMessage("Папка files создана:\n📁 Download/Nemos_Mods/files\n\nКак вставить за 15 секунд:\n1. Нажмите «Открыть MT Manager» ниже.\n2. Слева откройте: Download/Nemos_Mods/\n3. Справа откройте: Android/data/com.grandmobile.game/\n4. Зажмите папку files слева и нажмите «Копировать» с заменой.\n5. Нажмите «В ИГРУ».")
+            .setMessage("Папка с модами создана:\n📁 Download/Nemos_Mods/files\n\nИнструкция:\n1. Нажмите «Открыть MT Manager» ниже.\n2. Слева откройте: Download/Nemos_Mods/\n3. Справа откройте: Android/data/com.grandmobile.game/\n4. Зажмите папку files слева и нажмите «Копировать» (с заменой).\n5. Нажмите «В игру».")
             .setPositiveButton("Открыть MT Manager") { _, _ -> openMtManager() }
+            .setNeutralButton("🎮 В игру") { _, _ -> launchGrandMobile() }
             .setNegativeButton("Понятно", null)
             .show()
     }
@@ -180,7 +323,7 @@ class MainActivity : AppCompatActivity() {
         try {
             startActivity(intent)
         } catch (_: Exception) {
-            Toast.makeText(this, "MT Manager не установлен, откройте папку Загрузки вручную", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "MT Manager не установлен", Toast.LENGTH_SHORT).show()
         }
     }
 
