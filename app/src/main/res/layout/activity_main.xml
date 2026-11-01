@@ -284,6 +284,7 @@
                 android:textSize="13sp" />
         </LinearLayout>
 
+        <!-- ВКЛАДКА 1: SHIZUKU (1 КНОПКА) -->
         <LinearLayout
             android:id="@+id/layoutShizukuView"
             android:layout_width="match_parent"
@@ -313,6 +314,7 @@
                 android:textStyle="bold" />
         </LinearLayout>
 
+        <!-- ВКЛАДКА 2: MT MANAGER (АВТО-ОТКРЫТИЕ ПАПКИ FILES) -->
         <LinearLayout
             android:id="@+id/layoutMtView"
             android:layout_width="match_parent"
@@ -323,50 +325,31 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="8dp"
-                android:text="УСТАНОВКА ПО ЭТАПАМ:"
-                android:textColor="#A855F7"
-                android:textSize="12sp"
-                android:textStyle="bold" />
+                android:layout_marginBottom="10dp"
+                android:background="@drawable/bg_card_unselected"
+                android:padding="12dp"
+                android:text="💡 Нажми кнопку ниже — MT Manager сразу откроется на папке files.\nТебе останется только скопировать её справа в:\nAndroid → data → com.grandmobile.game"
+                android:textColor="#E4E4E7"
+                android:textSize="12sp" />
 
             <Button
-                android:id="@+id/btnMtStep1"
+                android:id="@+id/btnMtInstallAndOpen"
                 android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:background="@drawable/bg_card_selected"
-                android:text="1️⃣ Распаковать сборку"
-                android:textAllCaps="false"
+                android:layout_height="56dp"
+                android:background="@drawable/bg_btn_primary"
+                android:text="📂 ОТКРЫТЬ ПАПКУ FILES В MT MANAGER"
+                android:textAllCaps="true"
                 android:textColor="#FFFFFF"
                 android:textSize="14sp"
                 android:textStyle="bold" />
 
             <Button
-                android:id="@+id/btnMtStep2"
+                android:id="@+id/btnMtLaunchGame"
                 android:layout_width="match_parent"
-                android:layout_height="48dp"
+                android:layout_height="46dp"
                 android:layout_marginTop="10dp"
-                android:background="@drawable/bg_btn_outline"
-                android:text="2️⃣ Открыть MT Manager"
-                android:textAllCaps="false"
-                android:textColor="#E9D5FF"
-                android:textSize="14sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:layout_marginBottom="10dp"
-                android:text="💡 В MT Manager скопируй папку files из Download/Nemos_Mods в Android/data/com.grandmobile.game"
-                android:textColor="#71717A"
-                android:textSize="11sp" />
-
-            <Button
-                android:id="@+id/btnMtStep3"
-                android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:background="@drawable/bg_btn_primary"
-                android:text="3️⃣ Войти в Grand Mobile"
+                android:background="@drawable/bg_card_selected"
+                android:text="🎮 Запустить Grand Mobile"
                 android:textAllCaps="false"
                 android:textColor="#FFFFFF"
                 android:textSize="14sp"
