@@ -78,9 +78,10 @@ class MainActivity : AppCompatActivity() {
         binding.tvSubInfo.text = "Ключ: ${sessionManager.getSavedKey()} • До: ${sessionManager.getExpiresAt()}"
 
         val initialPreset = sessionManager.getSelectedPresetId().ifBlank { "molodoy" }
-        selectPreset(if (initialPreset == "fps_boost") "molodoy" else initialPreset)
+        selectPreset(initialPreset)
 
         binding.cardMolodoy.setOnClickListener { selectPreset("molodoy") }
+        binding.cardKarma.setOnClickListener { selectPreset("karma") }
         binding.cardFps.setOnClickListener { selectPreset("fps_boost") }
         binding.cardGhetto.setOnClickListener { selectPreset("ghetto_pack") }
         binding.cardCustom.setOnClickListener { selectPreset("custom") }
@@ -202,6 +203,9 @@ class MainActivity : AppCompatActivity() {
         binding.cardMolodoy.setBackgroundResource(if (presetId == "molodoy") R.drawable.bg_card_selected else R.drawable.bg_card_unselected)
         binding.tvBadgeMolodoy.visibility = if (presetId == "molodoy") View.VISIBLE else View.GONE
 
+        binding.cardKarma.setBackgroundResource(if (presetId == "karma") R.drawable.bg_card_selected else R.drawable.bg_card_unselected)
+        binding.tvBadgeKarma.visibility = if (presetId == "karma") View.VISIBLE else View.GONE
+
         binding.cardFps.setBackgroundResource(if (presetId == "fps_boost") R.drawable.bg_card_selected else R.drawable.bg_card_unselected)
         binding.tvBadgeFps.visibility = if (presetId == "fps_boost") View.VISIBLE else View.GONE
 
@@ -264,93 +268,23 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun buildCleanZipBytes(presetId: String): ByteArray? {
-        val input = openModStream(presetId) ?: return null
-        val baos = ByteArrayOutputStream()
-        var count = 0
-        val buffer = ByteArray(8192)
-
-        ZipInputStream(input.buffered()).use { zis ->
-            ZipOutputStream(baos).use { zos ->
-                var entry = zis.nextEntry
-                while (entry != null) {
-                    if (!entry.isDirectory) {
-                        val rawName = entry.name.replace('\\', '/')
-                        val relPath = when {
-                            rawName.contains("files/") -> rawName.substringAfter("files/")
-                            rawName.startsWith("Molodoy/") -> rawName.removePrefix("Molodoy/")
-                            else -> rawName
-                        }.trimStart('/')
-
-                        if (relPath.isNotEmpty()) {
-                            zos.putNextEntry(ZipEntry("files/$relPath"))
-                            var len: Int
-                            while (zis.read(buffer).also { len = it } > 0) {
-                                zos.write(buffer, 0, len)
-                            }
-                            zos.closeEntry()
-                            count++
-                        }
-                    }
-                    zis.closeEntry()
-                    entry = zis.nextEntry
-                }
-            }
-        }
-        return if (count > 0) baos.toByteArray() else null
-    }
-
     private fun applyModsViaShizuku(presetId: String, pkg: String): Boolean {
         try {
-            val cleanZip = buildCleanZipBytes(presetId)
-            if (cleanZip == null) {
-                lastShizukuError = "Архив сборки не найден"
+            val stagingDir = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), ".nemos_staging/files")
+            stagingDir.deleteRecursively()
+            stagingDir.mkdirs()
+
+            val extractedCount = openModStream(presetId)?.use { input ->
+                extractZipToDir(input, stagingDir)
+            } ?: 0
+
+            if (extractedCount <= 0) {
+                lastShizukuError = "Архив сборки пуст или не найден"
                 return false
             }
 
-            // Дополнительно сохраняем во внешний кэш приложения (доступен для UID 2000)
-            val extStaging = File(externalCacheDir ?: cacheDir, "shizuku_staging")
-            extStaging.deleteRecursively()
-            extStaging.mkdirs()
-            extractZipBytesToDir(cleanZip, extStaging)
-
-            val script = """
-                set -e
-                TMP_DIR="/data/local/tmp/nemos_work"
-                rm -rf "${'$'}TMP_DIR"
-                mkdir -p "${'$'}TMP_DIR"
-                cat > "${'$'}TMP_DIR/pack.zip"
-                
-                if command -v unzip >/dev/null 2>&1; then
-                    unzip -oq "${'$'}TMP_DIR/pack.zip" -d "${'$'}TMP_DIR/unpacked"
-                    SRC_FILES="${'$'}TMP_DIR/unpacked/files"
-                else
-                    SRC_FILES="${extStaging.absolutePath}/files"
-                fi
-
-                 TARGET_BASE="/storage/emulated/0/Android/data/$pkg"
-                for d in /storage/emulated/0/Android/data/*grand* /sdcard/Android/data/*grand*; do
-                    if [ -d "${'$'}d" ]; then
-                        TARGET_BASE="${'$'}d"
-                        break
-                    fi
-                done
-
-                mkdir -p "${'$'}TARGET_BASE/files"
-
-                cd "${'$'}SRC_FILES"
-                find . -type f | while read -r rel; do
-                    clean_rel="${'$'}{rel#./}"
-                    dest_file="${'$'}TARGET_BASE/files/${'$'}clean_rel"
-                    dest_dir="${'$'}(dirname "${'$'}dest_file")"
-                    mkdir -p "${'$'}dest_dir"
-                    rm -f "${'$'}dest_file" 2>/dev/null || true
-                    cp -f "${'$'}SRC_FILES/${'$'}clean_rel" "${'$'}dest_file" || cat "${'$'}SRC_FILES/${'$'}clean_rel" > "${'$'}dest_file"
-                done
-
-                rm -rf "${'$'}TMP_DIR"
-                echo "OK"
-            """.trimIndent()
+            val gameFilesPath = "/storage/emulated/0/Android/data/$pkg/files"
+            val cmd = "mkdir -p '$gameFilesPath' && cp -rf '${stagingDir.absolutePath}/.' '$gameFilesPath/' && rm -rf '${stagingDir.parentFile?.absolutePath}'"
 
             val method: Method = Shizuku::class.java.getDeclaredMethod(
                 "newProcess",
@@ -359,51 +293,20 @@ class MainActivity : AppCompatActivity() {
                 String::class.java
             )
             method.isAccessible = true
-            val proc = method.invoke(null, arrayOf("sh", "-c", script), null, null) as Process
-
-            proc.outputStream.use { os ->
-                os.write(cleanZip)
-                os.flush()
-            }
-
-            val outText = proc.inputStream.bufferedReader().readText()
-            val errText = proc.errorStream.bufferedReader().readText()
+            val proc = method.invoke(null, arrayOf("sh", "-c", cmd), null, null) as Process
             val code = proc.waitFor()
+            val errText = proc.errorStream.bufferedReader().readText()
 
-            if (code == 0 && outText.contains("OK")) {
+            if (code == 0) {
                 return true
             } else {
-                lastShizukuError = errText.ifBlank { "Код выхода: $code" }.take(200)
+                lastShizukuError = errText.ifBlank { "Код выхода: $code" }
                 return false
             }
         } catch (e: Throwable) {
             lastShizukuError = e.message ?: "Неизвестная ошибка Shizuku"
             return false
         }
-    }
-
-    private fun extractZipBytesToDir(zipBytes: ByteArray, destRoot: File): Int {
-        var count = 0
-        val buffer = ByteArray(8192)
-        ZipInputStream(zipBytes.inputStream()).use { zis ->
-            var entry = zis.nextEntry
-            while (entry != null) {
-                if (!entry.isDirectory) {
-                    val outFile = File(destRoot, entry.name)
-                    outFile.parentFile?.mkdirs()
-                    FileOutputStream(outFile).use { fos ->
-                        var len: Int
-                        while (zis.read(buffer).also { len = it } > 0) {
-                            fos.write(buffer, 0, len)
-                        }
-                    }
-                    count++
-                }
-                zis.closeEntry()
-                entry = zis.nextEntry
-            }
-        }
-        return count
     }
 
     private fun handleMtUnpackAndOpen() {
@@ -433,28 +336,19 @@ class MainActivity : AppCompatActivity() {
 
         lifecycleScope.launch {
             val preset = sessionManager.getSelectedPresetId()
-            // Папка с "!" всегда стоит первой в самом верху списка /storage/emulated/0/ рядом с Android
             val topDir = File(Environment.getExternalStorageDirectory(), "!_СБОРКА_NEMOS")
-            val zipForMt = File(topDir, "ПЕРЕМЕСТИ_ПАПКУ_FILES.zip")
+            val targetFilesDir = File(topDir, "files")
 
             val success = withContext(Dispatchers.IO) {
                 try {
-                    val cleanZip = buildCleanZipBytes(preset) ?: return@withContext false
                     topDir.deleteRecursively()
-                    topDir.mkdirs()
+                    targetFilesDir.mkdirs()
 
-                    // 1. Записываем готовый архив (MT Manager сразу откроет его внутри и покажет папку files)
-                    FileOutputStream(zipForMt).use { it.write(cleanZip) }
+                    val count = openModStream(preset)?.use { input ->
+                        extractZipToDir(input, targetFilesDir)
+                    } ?: 0
 
-                    // 2. Также распаковываем саму папку files рядом
-                    extractZipBytesToDir(cleanZip, topDir)
-
-                    // 3. Дублируем в Download/Nemos_Mods на всякий случай
-                    val dlDir = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "Nemos_Mods")
-                    dlDir.deleteRecursively()
-                    dlDir.mkdirs()
-                    extractZipBytesToDir(cleanZip, dlDir)
-                    true
+                    count > 0
                 } catch (_: Exception) {
                     false
                 }
@@ -468,22 +362,22 @@ class MainActivity : AppCompatActivity() {
                 val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                 clipboard.setPrimaryClip(ClipData.newPlainText("grand_path", targetPath))
 
-                binding.tvStatus.text = "✅ Папка files открыта в MT Manager! Скопируй её в Android/data/$pkg"
+                binding.tvStatus.text = "✅ Папка files готова! Скопируй её в Android/data/$pkg"
                 Toast.makeText(
                     this@MainActivity,
-                    "👉 Зажми папку «files» и скопируй её в Android → data → $pkg",
+                    "👉 Скопируй папку files в Android → data → $pkg",
                     Toast.LENGTH_LONG
                 ).show()
 
-                openMtManagerDirectly(zipForMt, topDir)
+                openMtManagerDirectly(topDir)
             } else {
                 binding.tvStatus.text = "❌ Ошибка подготовки файлов сборки"
-                Toast.makeText(this@MainActivity, "Не удалось подготовить файлы", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this@MainActivity, "Не удалось извлечь файлы", Toast.LENGTH_SHORT).show()
             }
         }
     }
 
-    private fun openMtManagerDirectly(zipFile: File, folder: File) {
+    private fun openMtManagerDirectly(folder: File) {
         try {
             StrictMode.setVmPolicy(StrictMode.VmPolicy.Builder().build())
         } catch (_: Throwable) {}
@@ -491,17 +385,6 @@ class MainActivity : AppCompatActivity() {
         val mtPackages = listOf("bin.mt.plus", "bin.mt.plus.canary", "bin.mt.mmp")
         for (pkg in mtPackages) {
             if (isPackageInstalled(pkg)) {
-                // Открываем в MT Manager напрямую архив ПЕРЕМЕСТИ_ПАПКУ_FILES.zip, где лежит только папка files
-                try {
-                    val zipIntent = Intent(Intent.ACTION_VIEW).apply {
-                        setPackage(pkg)
-                        setDataAndType(Uri.fromFile(zipFile), "application/zip")
-                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    }
-                    startActivity(zipIntent)
-                    return
-                } catch (_: Throwable) {}
-
                 try {
                     val folderIntent = Intent(Intent.ACTION_VIEW).apply {
                         setPackage(pkg)
@@ -531,15 +414,63 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    // Умное извлечение: автоматически находит data/ и texdb/ даже в сборках из Telegram
+    private fun extractZipToDir(input: InputStream, targetDir: File): Int {
+        var count = 0
+        val buffer = ByteArray(8192)
+        ZipInputStream(input.buffered()).use { zis ->
+            var entry = zis.nextEntry
+            while (entry != null) {
+                if (!entry.isDirectory) {
+                    val rawName = entry.name.replace('\\', '/')
+                    val relPath = when {
+                        rawName.contains("/data/") -> "data/" + rawName.substringAfter("/data/")
+                        rawName.startsWith("data/") -> rawName
+                        rawName.contains("/texdb/") -> "texdb/" + rawName.substringAfter("/texdb/")
+                        rawName.startsWith("texdb/") -> rawName
+                        rawName.contains("files/") -> rawName.substringAfter("files/")
+                        rawName.startsWith("Molodoy/") -> rawName.removePrefix("Molodoy/")
+                        else -> rawName
+                    }.trimStart('/')
+
+                    if (relPath.isNotEmpty()) {
+                        val outFile = File(targetDir, relPath)
+                        outFile.parentFile?.mkdirs()
+                        FileOutputStream(outFile).use { fos ->
+                            var len: Int
+                            while (zis.read(buffer).also { len = it } > 0) {
+                                fos.write(buffer, 0, len)
+                            }
+                        }
+                        count++
+                    }
+                }
+                zis.closeEntry()
+                entry = zis.nextEntry
+            }
+        }
+        return count
+    }
+
     private fun openModStream(presetId: String): InputStream? {
         if (presetId == "custom" && customZipUri != null) {
             try {
                 return contentResolver.openInputStream(customZipUri!!)
             } catch (_: Exception) {}
         }
+
+        if (presetId == "karma") {
+            try { return assets.open("karma.zip") } catch (_: Exception) {}
+            val dl = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+            dl.listFiles()?.firstOrNull { it.name.contains("карм", true) || it.name.contains("чит", true) }?.let {
+                if (it.exists() && it.canRead()) return FileInputStream(it)
+            }
+        }
+
         try {
             return assets.open("molodoy.zip")
         } catch (_: Exception) {}
+
         val candidates = listOf(
             File("/sdcard/Download/molodoy_pack.zip"),
             File("/sdcard/Download/sb dlya Molodoy (1) - Копия - Копия.zip"),
