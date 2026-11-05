@@ -4,50 +4,43 @@ import android.content.Context
 import android.content.SharedPreferences
 
 class SessionManager(context: Context) {
+
     private val prefs: SharedPreferences =
-        context.getSharedPreferences("nemos_prefs", Context.MODE_PRIVATE)
+        context.getSharedPreferences("nemos_session_prefs", Context.MODE_PRIVATE)
 
-    companion object {
-        const val DEFAULT_SERVER = "http://78.154.103.46:11903"
-        private const val KEY_LICENSE = "license_key"
-        private const val KEY_EXPIRES = "expires_at"
-        private const val KEY_SERVER = "server_url"
-        private const val KEY_PRESET = "selected_preset"
-        private const val KEY_DELAY = "swap_delay_seconds"
-    }
-
-    fun isLoggedIn(): Boolean = getSavedKey().isNotBlank()
-
-    fun getSavedKey(): String = prefs.getString(KEY_LICENSE, "") ?: ""
-
-    fun getExpiresAt(): String = prefs.getString(KEY_EXPIRES, "Активна") ?: "Активна"
-
-    fun getServerUrl(): String = prefs.getString(KEY_SERVER, DEFAULT_SERVER)?.ifBlank { DEFAULT_SERVER } ?: DEFAULT_SERVER
-
-    fun saveSession(key: String, expiresAt: String, serverUrl: String = DEFAULT_SERVER) {
+    fun saveLogin(key: String, expiresAt: String = "2027-01-01") {
         prefs.edit()
-            .putString(KEY_LICENSE, key)
-            .putString(KEY_EXPIRES, expiresAt)
-            .putString(KEY_SERVER, serverUrl.ifBlank { DEFAULT_SERVER })
+            .putBoolean("is_logged_in", true)
+            .putString("saved_key", key)
+            .putString("expires_at", expiresAt)
             .apply()
     }
 
-    fun getSelectedPresetId(): String = prefs.getString(KEY_PRESET, "fps_boost") ?: "fps_boost"
-
-    fun setSelectedPresetId(presetId: String) {
-        prefs.edit().putString(KEY_PRESET, presetId).apply()
+    fun saveSession(key: String, expiresAt: String = "2027-01-01") {
+        saveLogin(key, expiresAt)
     }
 
-    fun getSwapDelaySeconds(): Int = prefs.getInt(KEY_DELAY, 17)
+    fun isLoggedIn(): Boolean {
+        return prefs.getBoolean("is_logged_in", false) && !getSavedKey().isNullOrBlank()
+    }
 
-    fun setSwapDelaySeconds(seconds: Int) {
-        prefs.edit().putInt(KEY_DELAY, seconds).apply()
+    fun getSavedKey(): String {
+        return prefs.getString("saved_key", "") ?: ""
+    }
+
+    fun getExpiresAt(): String {
+        return prefs.getString("expires_at", "2027-01-01") ?: "2027-01-01"
+    }
+
+    fun getSelectedPresetId(): String {
+        return prefs.getString("selected_preset_id", "karma") ?: "karma"
+    }
+
+    fun setSelectedPresetId(presetId: String) {
+        prefs.edit().putString("selected_preset_id", presetId).apply()
     }
 
     fun clearSession() {
-        prefs.edit()
-            .remove(KEY_LICENSE)
-            .remove(KEY_EXPIRES)
-            .apply()
+        prefs.edit().clear().apply()
     }
 }
