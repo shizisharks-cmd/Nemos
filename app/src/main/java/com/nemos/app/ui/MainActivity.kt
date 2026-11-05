@@ -148,7 +148,7 @@ class MainActivity : AppCompatActivity() {
             binding.btnTabShizuku.setTextColor(0xFFA1A1AA.toInt())
             binding.layoutShizukuView.visibility = View.GONE
             binding.layoutMtView.visibility = View.VISIBLE
-            binding.tvStatus.text = "Нажмите кнопку, чтобы сразу открыть папку files в MT Manager"
+            binding.tvStatus.text = "Нажмите кнопку, чтобы открыть папку files в MT Manager"
         }
     }
 
@@ -178,7 +178,7 @@ class MainActivity : AppCompatActivity() {
                 binding.tvShizukuStatus.text = "🟢 Shizuku активен: всё готово к 1 клику"
                 binding.tvShizukuStatus.setTextColor(0xFF2DD4BF.toInt())
                 binding.btnShizukuInstall.text = "🚀 УСТАНОВИТЬ И ВОЙТИ В ИГРУ (1 КЛИК)"
-                binding.tvStatus.text = "Нажмите кнопку для авто-установки и перезапуска игры"
+                binding.tvStatus.text = "Нажмите кнопку для авто-установки и запуска Grand Mobile"
             } else {
                 binding.tvShizukuStatus.text = "🟡 Shizuku запущен, нужно выдать разрешение"
                 binding.tvShizukuStatus.setTextColor(0xFFF59E0B.toInt())
@@ -226,13 +226,13 @@ class MainActivity : AppCompatActivity() {
         if (!hasShizukuPermission()) {
             try {
                 Shizuku.requestPermission(1001)
-                Toast.makeText(this, "Подтвердите доступ в появившемся окне Shizuku", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Подтвердите доступ в окне Shizuku", Toast.LENGTH_SHORT).show()
             } catch (_: Throwable) {}
             return
         }
 
         binding.btnShizukuInstall.isEnabled = false
-        binding.tvStatus.text = "⏳ Распаковываем и перезапускаем игру..."
+        binding.tvStatus.text = "⏳ Распаковываем сборку и заменяем файлы..."
 
         lifecycleScope.launch {
             val preset = sessionManager.getSelectedPresetId()
@@ -243,8 +243,8 @@ class MainActivity : AppCompatActivity() {
 
             binding.btnShizukuInstall.isEnabled = true
             if (success) {
-                binding.tvStatus.text = "✅ Сборка установлена! Игра запущена начисто."
-                Toast.makeText(this@MainActivity, "✅ Сборка установлена! Входим в игру...", Toast.LENGTH_SHORT).show()
+                binding.tvStatus.text = "✅ Сборка установлена! Входим в игру..."
+                Toast.makeText(this@MainActivity, "✅ Сборка установлена! Запускаем Grand Mobile...", Toast.LENGTH_SHORT).show()
                 launchGrandMobile()
             } else {
                 binding.tvStatus.text = "❌ Ошибка: $lastShizukuError"
@@ -260,8 +260,8 @@ class MainActivity : AppCompatActivity() {
 
     private fun applyModsViaShizuku(presetId: String, pkg: String): Boolean {
         try {
-            // Распаковываем во внутреннюю видимую папку Загрузок !_СБОРКА_NEMOS
-            val stagingDir = File(Environment.getExternalStorageDirectory(), "!_СБОРКА_NEMOS/files")
+            // Внутренний кэш приложения всегда доступен для создания папок без ошибок ENOENT
+            val stagingDir = File(externalCacheDir ?: cacheDir, "nemos_staging/files")
             stagingDir.deleteRecursively()
             stagingDir.mkdirs()
 
@@ -274,30 +274,49 @@ class MainActivity : AppCompatActivity() {
                 return false
             }
 
-            // 1. Убиваем зависший процесс игры
-            // 2. Копируем с гарантированной перезаписью каждого файла
-            // 3. Проверяем наличие timecyc.dat
+            // Делаем файлы доступными для чтения процессу Shizuku
+            try {
+                stagingDir.setReadable(true, false)
+                stagingDir.setExecutable(true, false)
+                stagingDir.walkTopDown().forEach {
+                    it.setReadable(true, false)
+                    it.setExecutable(true, false)
+                }
+            } catch (_: Exception) {}
+
             val script = """
-                am force-stop $pkg 2>/dev/null || true
+                PKG="$pkg"
+                DEST="/storage/emulated/0/Android/data/${'$'}PKG/files"
+                SRC="${stagingDir.absolutePath}"
+
+                am force-stop "${'$'}PKG" 2>/dev/null || true
                 am force-stop com.grandmobile.game 2>/dev/null || true
                 am force-stop ru.grandmobile.game 2>/dev/null || true
 
-                DEST="/storage/emulated/0/Android/data/$pkg/files"
-                SRC="${stagingDir.absolutePath}"
+                if [ ! -d "${'$'}DEST" ]; then
+                    for d in /storage/emulated/0/Android/data/*grand*/files /sdcard/Android/data/*grand*/files; do
+                        if [ -d "${'$'}d" ]; then
+                            DEST="${'$'}d"
+                            break
+                        fi
+                    done
+                fi
 
                 mkdir -p "${'$'}DEST/data" "${'$'}DEST/texdb/mobile"
 
-                if [ -d "${'$'}SRC/data" ]; then
-                    cp -rf "${'$'}SRC/data/"* "${'$'}DEST/data/" 2>/dev/null || true
-                fi
+                cp -rf "${'$'}SRC/"* "${'$'}DEST/" 2>/dev/null || cp -rf "${'$'}SRC/." "${'$'}DEST/" 2>/dev/null || true
 
-                if [ -d "${'$'}SRC/texdb" ]; then
-                    cp -rf "${'$'}SRC/texdb/"* "${'$'}DEST/texdb/" 2>/dev/null || true
-                fi
+                cd "${'$'}SRC"
+                find . -type f | while read -r rel; do
+                    clean_rel="${'$'}{rel#./}"
+                    dest_file="${'$'}DEST/${'$'}clean_rel"
+                    dest_dir="${'$'}(dirname "${'$'}dest_file")"
+                    mkdir -p "${'$'}dest_dir"
+                    rm -f "${'$'}dest_file" 2>/dev/null || true
+                    cp -f "${'$'}SRC/${'$'}clean_rel" "${'$'}dest_file" 2>/dev/null || cat "${'$'}SRC/${'$'}clean_rel" > "${'$'}dest_file" 2>/dev/null || true
+                done
 
-                cp -rf "${'$'}SRC/"* "${'$'}DEST/" 2>/dev/null || true
-
-                if [ -f "${'$'}DEST/data/timecyc.dat" ] || [ -d "${'$'}DEST/texdb" ]; then
+                if [ -f "${'$'}DEST/data/timecyc.dat" ] || [ -f "${'$'}DEST/data/colorcycle.dat" ] || [ -d "${'$'}DEST/texdb" ]; then
                     echo "SUCCESS_COPIED"
                 else
                     echo "FAIL_CHECK"
@@ -328,6 +347,22 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun handleMtUnpackAndOpen() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && !Environment.isExternalStorageManager()) {
+            AlertDialog.Builder(this)
+                .setTitle("Доступ ко всем файлам")
+                .setMessage("Для работы через MT Manager необходимо выдать разрешение на доступ к файлам.")
+                .setPositiveButton("Включить") { _, _ ->
+                    try {
+                        startActivity(Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION, Uri.parse("package:$packageName")))
+                    } catch (_: Exception) {
+                        startActivity(Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION))
+                    }
+                }
+                .setNegativeButton("Отмена", null)
+                .show()
+            return
+        }
+
         binding.btnMtInstallAndOpen.isEnabled = false
         binding.tvStatus.text = "⏳ Распаковываем файлы сборки..."
 
@@ -422,6 +457,7 @@ class MainActivity : AppCompatActivity() {
                         rawName.startsWith("texdb/") -> rawName
                         rawName.contains("files/") -> rawName.substringAfter("files/")
                         rawName.startsWith("Molodoy/") -> rawName.removePrefix("Molodoy/")
+                        rawName.endsWith(".dat", true) || rawName.endsWith(".cfg", true) -> "data/$rawName"
                         else -> rawName
                     }.trimStart('/')
 
@@ -454,8 +490,8 @@ class MainActivity : AppCompatActivity() {
         if (presetId == "karma") {
             try { return assets.open("karma.zip") } catch (_: Exception) {}
             val searchDirs = listOf(
-                File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "Telegram"),
                 Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
+                File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "Telegram"),
                 File("/sdcard/Download"),
                 File("/sdcard/Download/Telegram")
             )
