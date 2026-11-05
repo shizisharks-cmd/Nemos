@@ -91,57 +91,13 @@
             android:textSize="12sp"
             android:textStyle="bold" />
 
-        <!-- СБОРКА МОЛОДОЙ -->
-        <LinearLayout
-            android:id="@+id/cardMolodoy"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="10dp"
-            android:background="@drawable/bg_card_selected"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:padding="16dp">
-
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="🔥 Сборка Molodoy"
-                    android:textColor="#FFFFFF"
-                    android:textSize="17sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="2dp"
-                    android:text="Кастомный таймцикл и реалистичные текстуры"
-                    android:textColor="#A1A1AA"
-                    android:textSize="12sp" />
-            </LinearLayout>
-
-            <TextView
-                android:id="@+id/tvBadgeMolodoy"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="✓ ВЫБРАНО"
-                android:textColor="#2DD4BF"
-                android:textSize="11sp"
-                android:textStyle="bold" />
-        </LinearLayout>
-
         <!-- СБОРКА KARMA ДЛЯ ФВ -->
         <LinearLayout
             android:id="@+id/cardKarma"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="10dp"
-            android:background="@drawable/bg_card_unselected"
+            android:background="@drawable/bg_card_selected"
             android:gravity="center_vertical"
             android:orientation="horizontal"
             android:padding="16dp">
@@ -171,6 +127,50 @@
 
             <TextView
                 android:id="@+id/tvBadgeKarma"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="✓ ВЫБРАНО"
+                android:textColor="#2DD4BF"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- СБОРКА МОЛОДОЙ -->
+        <LinearLayout
+            android:id="@+id/cardMolodoy"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="10dp"
+            android:background="@drawable/bg_card_unselected"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:padding="16dp">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="🔥 Сборка Molodoy"
+                    android:textColor="#FFFFFF"
+                    android:textSize="17sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:text="Кастомный таймцикл и реалистичные текстуры"
+                    android:textColor="#A1A1AA"
+                    android:textSize="12sp" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/tvBadgeMolodoy"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="✓ ВЫБРАНО"
@@ -216,51 +216,6 @@
 
             <TextView
                 android:id="@+id/tvBadgeFps"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="✓ ВЫБРАНО"
-                android:textColor="#2DD4BF"
-                android:textSize="11sp"
-                android:textStyle="bold"
-                android:visibility="gone" />
-        </LinearLayout>
-
-        <!-- GHETTO PACK -->
-        <LinearLayout
-            android:id="@+id/cardGhetto"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="10dp"
-            android:background="@drawable/bg_card_unselected"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:padding="16dp">
-
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="🔫 Ghetto Pack"
-                    android:textColor="#FFFFFF"
-                    android:textSize="17sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="2dp"
-                    android:text="Прицелы, звуки выстрелов и эффекты"
-                    android:textColor="#A1A1AA"
-                    android:textSize="12sp" />
-            </LinearLayout>
-
-            <TextView
-                android:id="@+id/tvBadgeGhetto"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="✓ ВЫБРАНО"
@@ -333,7 +288,7 @@
                 android:textSize="13sp" />
         </LinearLayout>
 
-        <!-- РЕЖИМ 1-КЛИК: SHIZUKU (РОВНО 1 КНОПКА) -->
+        <!-- КНОПКА SHIZUKU -->
         <LinearLayout
             android:id="@+id/layoutShizukuView"
             android:layout_width="match_parent"
@@ -377,7 +332,7 @@
                 android:layout_marginBottom="10dp"
                 android:background="@drawable/bg_card_unselected"
                 android:padding="12dp"
-                android:text="💡 Нажми кнопку ниже — MT Manager сразу откроется на папке files.\nОстанется только скопировать её справа в:\nAndroid → data → com.grandmobile.game"
+                android:text="💡 Нажми кнопку ниже — MT Manager сразу откроется на папке files.\nОстанется скопировать её справа в:\nAndroid → data → com.grandmobile.game"
                 android:textColor="#E4E4E7"
                 android:textSize="12sp" />
 

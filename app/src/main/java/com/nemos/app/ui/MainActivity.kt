@@ -24,15 +24,12 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import rikka.shizuku.Shizuku
-import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.io.InputStream
 import java.lang.reflect.Method
-import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
-import java.util.zip.ZipOutputStream
 
 class MainActivity : AppCompatActivity() {
 
@@ -77,13 +74,12 @@ class MainActivity : AppCompatActivity() {
 
         binding.tvSubInfo.text = "Ключ: ${sessionManager.getSavedKey()} • До: ${sessionManager.getExpiresAt()}"
 
-        val initialPreset = sessionManager.getSelectedPresetId().ifBlank { "molodoy" }
+        val initialPreset = sessionManager.getSelectedPresetId().ifBlank { "karma" }
         selectPreset(initialPreset)
 
-        binding.cardMolodoy.setOnClickListener { selectPreset("molodoy") }
         binding.cardKarma.setOnClickListener { selectPreset("karma") }
+        binding.cardMolodoy.setOnClickListener { selectPreset("molodoy") }
         binding.cardFps.setOnClickListener { selectPreset("fps_boost") }
-        binding.cardGhetto.setOnClickListener { selectPreset("ghetto_pack") }
         binding.cardCustom.setOnClickListener { selectPreset("custom") }
 
         binding.btnPickZip.setOnClickListener {
@@ -182,7 +178,7 @@ class MainActivity : AppCompatActivity() {
                 binding.tvShizukuStatus.text = "🟢 Shizuku активен: всё готово к 1 клику"
                 binding.tvShizukuStatus.setTextColor(0xFF2DD4BF.toInt())
                 binding.btnShizukuInstall.text = "🚀 УСТАНОВИТЬ И ВОЙТИ В ИГРУ (1 КЛИК)"
-                binding.tvStatus.text = "Нажмите кнопку для авто-установки и запуска Grand Mobile"
+                binding.tvStatus.text = "Нажмите кнопку для авто-установки и перезапуска игры"
             } else {
                 binding.tvShizukuStatus.text = "🟡 Shizuku запущен, нужно выдать разрешение"
                 binding.tvShizukuStatus.setTextColor(0xFFF59E0B.toInt())
@@ -200,17 +196,14 @@ class MainActivity : AppCompatActivity() {
     private fun selectPreset(presetId: String) {
         sessionManager.setSelectedPresetId(presetId)
 
-        binding.cardMolodoy.setBackgroundResource(if (presetId == "molodoy") R.drawable.bg_card_selected else R.drawable.bg_card_unselected)
-        binding.tvBadgeMolodoy.visibility = if (presetId == "molodoy") View.VISIBLE else View.GONE
-
         binding.cardKarma.setBackgroundResource(if (presetId == "karma") R.drawable.bg_card_selected else R.drawable.bg_card_unselected)
         binding.tvBadgeKarma.visibility = if (presetId == "karma") View.VISIBLE else View.GONE
 
+        binding.cardMolodoy.setBackgroundResource(if (presetId == "molodoy") R.drawable.bg_card_selected else R.drawable.bg_card_unselected)
+        binding.tvBadgeMolodoy.visibility = if (presetId == "molodoy") View.VISIBLE else View.GONE
+
         binding.cardFps.setBackgroundResource(if (presetId == "fps_boost") R.drawable.bg_card_selected else R.drawable.bg_card_unselected)
         binding.tvBadgeFps.visibility = if (presetId == "fps_boost") View.VISIBLE else View.GONE
-
-        binding.cardGhetto.setBackgroundResource(if (presetId == "ghetto_pack") R.drawable.bg_card_selected else R.drawable.bg_card_unselected)
-        binding.tvBadgeGhetto.visibility = if (presetId == "ghetto_pack") View.VISIBLE else View.GONE
 
         binding.cardCustom.setBackgroundResource(if (presetId == "custom") R.drawable.bg_card_selected else R.drawable.bg_card_unselected)
         binding.tvBadgeCustom.visibility = if (presetId == "custom") View.VISIBLE else View.GONE
@@ -220,11 +213,10 @@ class MainActivity : AppCompatActivity() {
         if (!isShizukuAvailable()) {
             AlertDialog.Builder(this)
                 .setTitle("Shizuku не запущен")
-                .setMessage("Служба Shizuku сейчас выключена.\n\n1. Откройте приложение Shizuku и нажмите «Запустить».\nИЛИ\n2. Переключите вкладку сверху на «📁 MT Manager».")
+                .setMessage("Служба Shizuku сейчас выключена.\n\nЗапустите её через приложение Shizuku или переключитесь на вкладку «MT Manager».")
                 .setPositiveButton("Открыть Shizuku") { _, _ ->
                     val intent = packageManager.getLaunchIntentForPackage("moe.shizuku.privileged.api")
                     if (intent != null) startActivity(intent)
-                    else Toast.makeText(this, "Приложение Shizuku не найдено", Toast.LENGTH_SHORT).show()
                 }
                 .setNegativeButton("Понятно", null)
                 .show()
@@ -235,14 +227,12 @@ class MainActivity : AppCompatActivity() {
             try {
                 Shizuku.requestPermission(1001)
                 Toast.makeText(this, "Подтвердите доступ в появившемся окне Shizuku", Toast.LENGTH_SHORT).show()
-            } catch (_: Throwable) {
-                Toast.makeText(this, "Не удалось запросить доступ Shizuku", Toast.LENGTH_SHORT).show()
-            }
+            } catch (_: Throwable) {}
             return
         }
 
         binding.btnShizukuInstall.isEnabled = false
-        binding.tvStatus.text = "⏳ Устанавливаем файлы сборки через Shizuku..."
+        binding.tvStatus.text = "⏳ Распаковываем и перезапускаем игру..."
 
         lifecycleScope.launch {
             val preset = sessionManager.getSelectedPresetId()
@@ -253,15 +243,15 @@ class MainActivity : AppCompatActivity() {
 
             binding.btnShizukuInstall.isEnabled = true
             if (success) {
-                binding.tvStatus.text = "✅ Сборка успешно установлена! Входим в игру..."
-                Toast.makeText(this@MainActivity, "✅ Сборка установлена! Запускаем игру...", Toast.LENGTH_SHORT).show()
+                binding.tvStatus.text = "✅ Сборка установлена! Игра запущена начисто."
+                Toast.makeText(this@MainActivity, "✅ Сборка установлена! Входим в игру...", Toast.LENGTH_SHORT).show()
                 launchGrandMobile()
             } else {
                 binding.tvStatus.text = "❌ Ошибка: $lastShizukuError"
                 AlertDialog.Builder(this@MainActivity)
-                    .setTitle("Детали ошибки Shizuku")
-                    .setMessage("Не удалось скопировать файлы напрямую:\n$lastShizukuError\n\nВы можете установить сборку через вкладку «📁 MT Manager».")
-                    .setPositiveButton("Перейти к MT Manager") { _, _ -> setMode(false) }
+                    .setTitle("Детали ошибки")
+                    .setMessage("Не удалось скопировать файлы:\n$lastShizukuError\n\nИспользуйте вкладку «MT Manager».")
+                    .setPositiveButton("К MT Manager") { _, _ -> setMode(false) }
                     .setNegativeButton("Закрыть", null)
                     .show()
             }
@@ -270,7 +260,8 @@ class MainActivity : AppCompatActivity() {
 
     private fun applyModsViaShizuku(presetId: String, pkg: String): Boolean {
         try {
-            val stagingDir = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), ".nemos_staging/files")
+            // Распаковываем во внутреннюю видимую папку Загрузок !_СБОРКА_NEMOS
+            val stagingDir = File(Environment.getExternalStorageDirectory(), "!_СБОРКА_NEMOS/files")
             stagingDir.deleteRecursively()
             stagingDir.mkdirs()
 
@@ -279,12 +270,39 @@ class MainActivity : AppCompatActivity() {
             } ?: 0
 
             if (extractedCount <= 0) {
-                lastShizukuError = "Архив сборки пуст или не найден"
+                lastShizukuError = "Файлы сборки не найдены в архиве"
                 return false
             }
 
-            val gameFilesPath = "/storage/emulated/0/Android/data/$pkg/files"
-            val cmd = "mkdir -p '$gameFilesPath' && cp -rf '${stagingDir.absolutePath}/.' '$gameFilesPath/' && rm -rf '${stagingDir.parentFile?.absolutePath}'"
+            // 1. Убиваем зависший процесс игры
+            // 2. Копируем с гарантированной перезаписью каждого файла
+            // 3. Проверяем наличие timecyc.dat
+            val script = """
+                am force-stop $pkg 2>/dev/null || true
+                am force-stop com.grandmobile.game 2>/dev/null || true
+                am force-stop ru.grandmobile.game 2>/dev/null || true
+
+                DEST="/storage/emulated/0/Android/data/$pkg/files"
+                SRC="${stagingDir.absolutePath}"
+
+                mkdir -p "${'$'}DEST/data" "${'$'}DEST/texdb/mobile"
+
+                if [ -d "${'$'}SRC/data" ]; then
+                    cp -rf "${'$'}SRC/data/"* "${'$'}DEST/data/" 2>/dev/null || true
+                fi
+
+                if [ -d "${'$'}SRC/texdb" ]; then
+                    cp -rf "${'$'}SRC/texdb/"* "${'$'}DEST/texdb/" 2>/dev/null || true
+                fi
+
+                cp -rf "${'$'}SRC/"* "${'$'}DEST/" 2>/dev/null || true
+
+                if [ -f "${'$'}DEST/data/timecyc.dat" ] || [ -d "${'$'}DEST/texdb" ]; then
+                    echo "SUCCESS_COPIED"
+                else
+                    echo "FAIL_CHECK"
+                fi
+            """.trimIndent()
 
             val method: Method = Shizuku::class.java.getDeclaredMethod(
                 "newProcess",
@@ -293,46 +311,25 @@ class MainActivity : AppCompatActivity() {
                 String::class.java
             )
             method.isAccessible = true
-            val proc = method.invoke(null, arrayOf("sh", "-c", cmd), null, null) as Process
-            val code = proc.waitFor()
-            val errText = proc.errorStream.bufferedReader().readText()
+            val proc = method.invoke(null, arrayOf("sh", "-c", script), null, null) as Process
+            val out = proc.inputStream.bufferedReader().readText()
+            proc.waitFor()
 
-            if (code == 0) {
+            if (out.contains("SUCCESS_COPIED")) {
                 return true
             } else {
-                lastShizukuError = errText.ifBlank { "Код выхода: $code" }
+                lastShizukuError = "Файлы не записались в Android/data/$pkg/files"
                 return false
             }
         } catch (e: Throwable) {
-            lastShizukuError = e.message ?: "Неизвестная ошибка Shizuku"
+            lastShizukuError = e.message ?: "Ошибка процесса Shizuku"
             return false
         }
     }
 
     private fun handleMtUnpackAndOpen() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            if (!Environment.isExternalStorageManager()) {
-                AlertDialog.Builder(this)
-                    .setTitle("Доступ к памяти")
-                    .setMessage("Включите разрешение один раз, чтобы лаунчер сразу открывал готовую папку files в MT Manager.")
-                    .setPositiveButton("Включить") { _, _ ->
-                        try {
-                            val intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION).apply {
-                                data = Uri.parse("package:$packageName")
-                            }
-                            startActivity(intent)
-                        } catch (_: Exception) {
-                            startActivity(Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION))
-                        }
-                    }
-                    .setNegativeButton("Отмена", null)
-                    .show()
-                return
-            }
-        }
-
         binding.btnMtInstallAndOpen.isEnabled = false
-        binding.tvStatus.text = "⏳ Готовим папку files и открываем MT Manager..."
+        binding.tvStatus.text = "⏳ Распаковываем файлы сборки..."
 
         lifecycleScope.launch {
             val preset = sessionManager.getSelectedPresetId()
@@ -362,17 +359,13 @@ class MainActivity : AppCompatActivity() {
                 val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                 clipboard.setPrimaryClip(ClipData.newPlainText("grand_path", targetPath))
 
-                binding.tvStatus.text = "✅ Папка files готова! Скопируй её в Android/data/$pkg"
-                Toast.makeText(
-                    this@MainActivity,
-                    "👉 Скопируй папку files в Android → data → $pkg",
-                    Toast.LENGTH_LONG
-                ).show()
+                binding.tvStatus.text = "✅ Папка files создана! Скопируйте её в Android/data/$pkg"
+                Toast.makeText(this@MainActivity, "👉 Зажмите files и скопируйте в Android → data → $pkg", Toast.LENGTH_LONG).show()
 
                 openMtManagerDirectly(topDir)
             } else {
-                binding.tvStatus.text = "❌ Ошибка подготовки файлов сборки"
-                Toast.makeText(this@MainActivity, "Не удалось извлечь файлы", Toast.LENGTH_SHORT).show()
+                binding.tvStatus.text = "❌ Ошибка извлечения файлов"
+                Toast.makeText(this@MainActivity, "Не удалось распаковать архив", Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -402,7 +395,7 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
-        Toast.makeText(this, "MT Manager не установлен на телефоне", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, "MT Manager не установлен", Toast.LENGTH_SHORT).show()
     }
 
     private fun isPackageInstalled(pkg: String): Boolean {
@@ -414,7 +407,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    // Умное извлечение: автоматически находит data/ и texdb/ даже в сборках из Telegram
     private fun extractZipToDir(input: InputStream, targetDir: File): Int {
         var count = 0
         val buffer = ByteArray(8192)
@@ -461,9 +453,16 @@ class MainActivity : AppCompatActivity() {
 
         if (presetId == "karma") {
             try { return assets.open("karma.zip") } catch (_: Exception) {}
-            val dl = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-            dl.listFiles()?.firstOrNull { it.name.contains("карм", true) || it.name.contains("чит", true) }?.let {
-                if (it.exists() && it.canRead()) return FileInputStream(it)
+            val searchDirs = listOf(
+                File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "Telegram"),
+                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
+                File("/sdcard/Download"),
+                File("/sdcard/Download/Telegram")
+            )
+            for (d in searchDirs) {
+                d.listFiles()?.firstOrNull { it.name.contains("карм", true) || it.name.contains("чит", true) }?.let {
+                    if (it.exists() && it.canRead()) return FileInputStream(it)
+                }
             }
         }
 
@@ -489,15 +488,6 @@ class MainActivity : AppCompatActivity() {
         for (pkg in known) {
             if (isPackageInstalled(pkg)) return pkg
         }
-        try {
-            val apps = packageManager.getInstalledApplications(0)
-            for (app in apps) {
-                val p = app.packageName.lowercase()
-                if (p.contains("grand") && p != packageName.lowercase()) {
-                    return app.packageName
-                }
-            }
-        } catch (_: Exception) {}
         return "com.grandmobile.game"
     }
 
@@ -505,10 +495,10 @@ class MainActivity : AppCompatActivity() {
         val pkg = getGrandPackage()
         val intent = packageManager.getLaunchIntentForPackage(pkg)
         if (intent != null) {
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
             startActivity(intent)
             return
         }
-        Toast.makeText(this, "Grand Mobile не найден на телефоне", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, "Grand Mobile не найден", Toast.LENGTH_SHORT).show()
     }
 }
