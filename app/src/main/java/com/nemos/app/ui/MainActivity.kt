@@ -213,7 +213,7 @@ class MainActivity : AppCompatActivity() {
         if (!isShizukuAvailable()) {
             AlertDialog.Builder(this)
                 .setTitle("Shizuku не запущен")
-                .setMessage("Служба Shizuku сейчас выключена.\n\nЗапустите её через приложение Shizuku или переключитесь на вкладку «MT Manager».")
+                .setMessage("Запустите службу в приложении Shizuku или переключитесь на «MT Manager».")
                 .setPositiveButton("Открыть Shizuku") { _, _ ->
                     val intent = packageManager.getLaunchIntentForPackage("moe.shizuku.privileged.api")
                     if (intent != null) startActivity(intent)
@@ -226,7 +226,7 @@ class MainActivity : AppCompatActivity() {
         if (!hasShizukuPermission()) {
             try {
                 Shizuku.requestPermission(1001)
-                Toast.makeText(this, "Подтвердите доступ в окне Shizuku", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Подтвердите доступ в Shizuku", Toast.LENGTH_SHORT).show()
             } catch (_: Throwable) {}
             return
         }
@@ -236,15 +236,14 @@ class MainActivity : AppCompatActivity() {
 
         lifecycleScope.launch {
             val preset = sessionManager.getSelectedPresetId()
-            val pkg = getGrandPackage()
             val success = withContext(Dispatchers.IO) {
-                applyModsViaShizuku(preset, pkg)
+                applyModsViaShizuku(preset)
             }
 
             binding.btnShizukuInstall.isEnabled = true
             if (success) {
-                binding.tvStatus.text = "✅ Сборка установлена! Входим в игру..."
-                Toast.makeText(this@MainActivity, "✅ Сборка установлена! Запускаем Grand Mobile...", Toast.LENGTH_SHORT).show()
+                binding.tvStatus.text = "✅ Сборка установлена! Запускаем Grand Mobile..."
+                Toast.makeText(this@MainActivity, "✅ Сборка установлена! Запускаем игру...", Toast.LENGTH_SHORT).show()
                 launchGrandMobile()
             } else {
                 binding.tvStatus.text = "❌ Ошибка: $lastShizukuError"
@@ -258,9 +257,39 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun applyModsViaShizuku(presetId: String, pkg: String): Boolean {
+    private fun runShizukuShell(command: String): Pair<Int, String> {
+        val method: Method = Shizuku::class.java.getDeclaredMethod(
+            "newProcess",
+            Array<String>::class.java,
+            Array<String>::class.java,
+            String::class.java
+        )
+        method.isAccessible = true
+        val proc = method.invoke(null, arrayOf("sh", "-c", command), null, null) as Process
+        val output = proc.inputStream.bufferedReader().readText()
+        val err = proc.errorStream.bufferedReader().readText()
+        proc.waitFor()
+        return Pair(proc.exitValue(), output.ifBlank { err })
+    }
+
+    private fun detectGrandPackage(): String {
+        val (_, out) = runShizukuShell("pm list packages | grep -i grand | cut -d: -f2 | tr -d '\r'")
+        val found = out.lines().map { it.trim() }.firstOrNull { it.isNotEmpty() }
+        if (!found.isNullOrEmpty()) return found
+
+        val known = listOf("com.grandmobile.game", "ru.grandmobile.game", "com.grand.mobile", "com.weiz.grandmobile")
+        for (pkg in known) {
+            try {
+                packageManager.getPackageInfo(pkg, 0)
+                return pkg
+            } catch (_: Exception) {}
+        }
+        return "com.grandmobile.game"
+    }
+
+    private fun applyModsViaShizuku(presetId: String): Boolean {
         try {
-            // Внутренний кэш приложения всегда доступен для создания папок без ошибок ENOENT
+            val pkg = detectGrandPackage()
             val stagingDir = File(externalCacheDir ?: cacheDir, "nemos_staging/files")
             stagingDir.deleteRecursively()
             stagingDir.mkdirs()
@@ -274,7 +303,6 @@ class MainActivity : AppCompatActivity() {
                 return false
             }
 
-            // Делаем файлы доступными для чтения процессу Shizuku
             try {
                 stagingDir.setReadable(true, false)
                 stagingDir.setExecutable(true, false)
@@ -323,18 +351,8 @@ class MainActivity : AppCompatActivity() {
                 fi
             """.trimIndent()
 
-            val method: Method = Shizuku::class.java.getDeclaredMethod(
-                "newProcess",
-                Array<String>::class.java,
-                Array<String>::class.java,
-                String::class.java
-            )
-            method.isAccessible = true
-            val proc = method.invoke(null, arrayOf("sh", "-c", script), null, null) as Process
-            val out = proc.inputStream.bufferedReader().readText()
-            proc.waitFor()
-
-            if (out.contains("SUCCESS_COPIED")) {
+            val (code, out) = runShizukuShell(script)
+            if (code == 0 && out.contains("SUCCESS_COPIED")) {
                 return true
             } else {
                 lastShizukuError = "Файлы не записались в Android/data/$pkg/files"
@@ -347,22 +365,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun handleMtUnpackAndOpen() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && !Environment.isExternalStorageManager()) {
-            AlertDialog.Builder(this)
-                .setTitle("Доступ ко всем файлам")
-                .setMessage("Для работы через MT Manager необходимо выдать разрешение на доступ к файлам.")
-                .setPositiveButton("Включить") { _, _ ->
-                    try {
-                        startActivity(Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION, Uri.parse("package:$packageName")))
-                    } catch (_: Exception) {
-                        startActivity(Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION))
-                    }
-                }
-                .setNegativeButton("Отмена", null)
-                .show()
-            return
-        }
-
         binding.btnMtInstallAndOpen.isEnabled = false
         binding.tvStatus.text = "⏳ Распаковываем файлы сборки..."
 
@@ -389,7 +391,7 @@ class MainActivity : AppCompatActivity() {
             binding.btnMtInstallAndOpen.isEnabled = true
 
             if (success) {
-                val pkg = getGrandPackage()
+                val pkg = detectGrandPackage()
                 val targetPath = "/storage/emulated/0/Android/data/$pkg/"
                 val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                 clipboard.setPrimaryClip(ClipData.newPlainText("grand_path", targetPath))
@@ -406,40 +408,17 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun openMtManagerDirectly(folder: File) {
-        try {
-            StrictMode.setVmPolicy(StrictMode.VmPolicy.Builder().build())
-        } catch (_: Throwable) {}
-
         val mtPackages = listOf("bin.mt.plus", "bin.mt.plus.canary", "bin.mt.mmp")
         for (pkg in mtPackages) {
-            if (isPackageInstalled(pkg)) {
-                try {
-                    val folderIntent = Intent(Intent.ACTION_VIEW).apply {
-                        setPackage(pkg)
-                        setDataAndType(Uri.fromFile(folder), "resource/folder")
-                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    }
-                    startActivity(folderIntent)
-                    return
-                } catch (_: Throwable) {}
-
-                val launchIntent = packageManager.getLaunchIntentForPackage(pkg)
-                if (launchIntent != null) {
-                    startActivity(launchIntent)
+            try {
+                val intent = packageManager.getLaunchIntentForPackage(pkg)
+                if (intent != null) {
+                    startActivity(intent)
                     return
                 }
-            }
+            } catch (_: Exception) {}
         }
         Toast.makeText(this, "MT Manager не установлен", Toast.LENGTH_SHORT).show()
-    }
-
-    private fun isPackageInstalled(pkg: String): Boolean {
-        return try {
-            packageManager.getPackageInfo(pkg, 0)
-            true
-        } catch (_: Exception) {
-            false
-        }
     }
 
     private fun extractZipToDir(input: InputStream, targetDir: File): Int {
@@ -519,22 +498,23 @@ class MainActivity : AppCompatActivity() {
         return null
     }
 
-    private fun getGrandPackage(): String {
-        val known = listOf("com.grandmobile.game", "ru.grandmobile.game", "com.grand.mobile", "com.weiz.grandmobile")
-        for (pkg in known) {
-            if (isPackageInstalled(pkg)) return pkg
-        }
-        return "com.grandmobile.game"
-    }
-
     private fun launchGrandMobile() {
-        val pkg = getGrandPackage()
+        val pkg = detectGrandPackage()
+        
+        // 1. Попытка стандартного запуска через Intent
         val intent = packageManager.getLaunchIntentForPackage(pkg)
         if (intent != null) {
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
             startActivity(intent)
             return
         }
-        Toast.makeText(this, "Grand Mobile не найден", Toast.LENGTH_SHORT).show()
+
+        // 2. Гарантированный запуск через системную службу Shizuku
+        if (isShizukuAvailable() && hasShizukuPermission()) {
+            val (code, _) = runShizukuShell("monkey -p $pkg -c android.intent.category.LAUNCHER 1 2>/dev/null || am start -n $pkg")
+            if (code == 0) return
+        }
+
+        Toast.makeText(this, "Не удалось открыть $pkg, запустите игру вручную", Toast.LENGTH_SHORT).show()
     }
 }
