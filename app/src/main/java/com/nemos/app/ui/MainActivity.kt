@@ -224,45 +224,6 @@ class MainActivity : AppCompatActivity() {
         return Pair(proc.exitValue(), output.ifBlank { err })
     }
 
-    private fun detectGrandPackage(): String {
-        val (_, out) = runShizukuShell("pm list packages | grep -i grand | cut -d: -f2 | tr -d '\r'")
-        val found = out.lines().map { it.trim() }.firstOrNull { it.isNotEmpty() }
-        if (!found.isNullOrEmpty()) return found
-
-        val known = listOf("com.grandmobile.game", "ru.grandmobile.game", "com.grand.mobile", "com.weiz.grandmobile")
-        for (pkg in known) {
-            try {
-                packageManager.getPackageInfo(pkg, 0)
-                return pkg
-            } catch (_: Exception) {}
-        }
-        return "com.grandmobile.game"
-    }
-
-    private fun streamFileToGameViaShizuku(pkg: String, relPath: String, input: InputStream): Boolean {
-        return try {
-            val dest = "/storage/emulated/0/Android/data/$pkg/files/$relPath"
-            val cmd = "mkdir -p \"\$(dirname '$dest')\" && cat > '$dest'"
-            val method: Method = Shizuku::class.java.getDeclaredMethod(
-                "newProcess",
-                Array<String>::class.java,
-                Array<String>::class.java,
-                String::class.java
-            )
-            method.isAccessible = true
-            val proc = method.invoke(null, arrayOf("sh", "-c", cmd), null, null) as Process
-
-            proc.outputStream.use { out ->
-                input.copyTo(out)
-                out.flush()
-            }
-            val code = proc.waitFor()
-            code == 0
-        } catch (_: Throwable) {
-            false
-        }
-    }
-
     private fun handleShizukuInstall() {
         if (!isShizukuAvailable()) {
             AlertDialog.Builder(this)
@@ -286,74 +247,94 @@ class MainActivity : AppCompatActivity() {
         }
 
         binding.btnShizukuInstall.isEnabled = false
-        binding.tvStatus.text = "⏳ Остановка игры и замена файлов..."
+        binding.tvStatus.text = "⏳ Распаковываем сборку и блокируем автообновление..."
 
         lifecycleScope.launch {
             val preset = sessionManager.getSelectedPresetId()
-            val pkg = detectGrandPackage()
-
             val success = withContext(Dispatchers.IO) {
-                // 1. Принудительно выгружаем процесс игры
-                runShizukuShell("am force-stop $pkg 2>/dev/null; am force-stop com.grandmobile.game 2>/dev/null; am force-stop ru.grandmobile.game 2>/dev/null")
-
-                // 2. Прямая пофайловая передача через системный поток Shizuku
-                var copiedCount = 0
-                val stream = openModStream(preset)
-                if (stream == null) {
-                    lastShizukuError = "Архив сборки не найден на телефоне"
-                    return@withContext false
-                }
-
-                stream.use { rawInput ->
-                    ZipInputStream(rawInput.buffered()).use { zis ->
-                        var entry = zis.nextEntry
-                        while (entry != null) {
-                            if (!entry.isDirectory) {
-                                val rawName = entry.name.replace('\\', '/')
-                                val relPath = when {
-                                    rawName.contains("/data/") -> "data/" + rawName.substringAfter("/data/")
-                                    rawName.startsWith("data/") -> rawName
-                                    rawName.contains("/texdb/") -> "texdb/" + rawName.substringAfter("/texdb/")
-                                    rawName.startsWith("texdb/") -> rawName
-                                    rawName.contains("files/") -> rawName.substringAfter("files/")
-                                    rawName.startsWith("Molodoy/") -> rawName.removePrefix("Molodoy/")
-                                    rawName.endsWith(".dat", true) || rawName.endsWith(".cfg", true) -> "data/$rawName"
-                                    else -> rawName
-                                }.trimStart('/')
-
-                                if (relPath.isNotEmpty() && !relPath.endsWith("/")) {
-                                    val ok = streamFileToGameViaShizuku(pkg, relPath, zis)
-                                    if (ok) copiedCount++
-                                }
-                            }
-                            zis.closeEntry()
-                            entry = zis.nextEntry
-                        }
-                    }
-                }
-
-                if (copiedCount == 0) {
-                    lastShizukuError = "Не удалось извлечь файлы из архива"
-                    false
-                } else {
-                    true
-                }
+                applyModsViaShizuku(preset)
             }
 
             binding.btnShizukuInstall.isEnabled = true
             if (success) {
-                binding.tvStatus.text = "✅ Сборка успешно установлена! Запускаем Grand Mobile..."
-                Toast.makeText(this@MainActivity, "✅ Сборка установлена! Входим в игру...", Toast.LENGTH_SHORT).show()
+                binding.tvStatus.text = "✅ Сборка установлена с защитой от сброса!"
+                Toast.makeText(this@MainActivity, "✅ Сборка установлена! Запускаем Grand Mobile...", Toast.LENGTH_SHORT).show()
                 launchGrandMobile()
             } else {
                 binding.tvStatus.text = "❌ Ошибка: $lastShizukuError"
                 AlertDialog.Builder(this@MainActivity)
                     .setTitle("Ошибка установки")
-                    .setMessage("$lastShizukuError\n\nВы можете распаковать файлы и установить их через MT Manager.")
+                    .setMessage("$lastShizukuError\n\nВы можете использовать MT Manager.")
                     .setPositiveButton("К MT Manager") { _, _ -> setMode(false) }
                     .setNegativeButton("Закрыть", null)
                     .show()
             }
+        }
+    }
+
+    private fun applyModsViaShizuku(presetId: String): Boolean {
+        try {
+            // Внутреннее хранилище приложения всегда доступно для создания папок
+            val stagingDir = File(getExternalFilesDir(null), "staging/files")
+            stagingDir.deleteRecursively()
+            stagingDir.mkdirs()
+
+            val extractedCount = openModStream(presetId)?.use { input ->
+                extractZipToDir(input, stagingDir)
+            } ?: 0
+
+            if (extractedCount <= 0) {
+                lastShizukuError = "Файлы сборки не найдены в архиве"
+                return false
+            }
+
+            val script = """
+                SRC="${stagingDir.absolutePath}"
+                FOUND=0
+
+                # 1. Принудительно выгружаем все варианты игры из памяти
+                for P in ru.grandmobile.game com.grandmobile.game com.grand.mobile com.weiz.grandmobile; do
+                    am force-stop "${'$'}P" 2>/dev/null || true
+                done
+
+                # 2. Копируем сборку во ВСЕ найденные папки Grand Mobile на устройстве
+                for PKG in ru.grandmobile.game com.grandmobile.game com.grand.mobile com.weiz.grandmobile; do
+                    DEST="/storage/emulated/0/Android/data/${'$'}PKG/files"
+                    if [ -d "/storage/emulated/0/Android/data/${'$'}PKG" ]; then
+                        mkdir -p "${'$'}DEST/data" "${'$'}DEST/texdb/mobile"
+                        cp -rf "${'$'}SRC/." "${'$'}DEST/" 2>/dev/null || true
+                        # Защита от автоапдейтера игры на 1.8 МБ: только чтение
+                        chmod 444 "${'$'}DEST/data/"* "${'$'}DEST/texdb/mobile/"* 2>/dev/null || true
+                        FOUND=1
+                    fi
+                done
+
+                for D in /storage/emulated/0/Android/data/*grand*/files /sdcard/Android/data/*grand*/files; do
+                    if [ -d "${'$'}D" ]; then
+                        mkdir -p "${'$'}D/data" "${'$'}D/texdb/mobile"
+                        cp -rf "${'$'}SRC/." "${'$'}D/" 2>/dev/null || true
+                        chmod 444 "${'$'}D/data/"* "${'$'}D/texdb/mobile/"* 2>/dev/null || true
+                        FOUND=1
+                    fi
+                done
+
+                if [ "${'$'}FOUND" -eq 1 ]; then
+                    echo "SUCCESS_COPIED"
+                else
+                    echo "FAIL_NO_GAME"
+                fi
+            """.trimIndent()
+
+            val (code, out) = runShizukuShell(script)
+            if (code == 0 && out.contains("SUCCESS_COPIED")) {
+                return true
+            } else {
+                lastShizukuError = "Папка Grand Mobile не найдена в Android/data/"
+                return false
+            }
+        } catch (e: Throwable) {
+            lastShizukuError = e.message ?: "Ошибка Shizuku"
+            return false
         }
     }
 
@@ -386,42 +367,10 @@ class MainActivity : AppCompatActivity() {
                     targetFolder.deleteRecursively()
                     targetFolder.mkdirs()
 
-                    var count = 0
-                    val buffer = ByteArray(8192)
-                    openModStream(preset)?.use { input ->
-                        ZipInputStream(input.buffered()).use { zis ->
-                            var entry = zis.nextEntry
-                            while (entry != null) {
-                                if (!entry.isDirectory) {
-                                    val rawName = entry.name.replace('\\', '/')
-                                    val relPath = when {
-                                        rawName.contains("/data/") -> "data/" + rawName.substringAfter("/data/")
-                                        rawName.startsWith("data/") -> rawName
-                                        rawName.contains("/texdb/") -> "texdb/" + rawName.substringAfter("/texdb/")
-                                        rawName.startsWith("texdb/") -> rawName
-                                        rawName.contains("files/") -> rawName.substringAfter("files/")
-                                        rawName.startsWith("Molodoy/") -> rawName.removePrefix("Molodoy/")
-                                        rawName.endsWith(".dat", true) || rawName.endsWith(".cfg", true) -> "data/$rawName"
-                                        else -> rawName
-                                    }.trimStart('/')
+                    val count = openModStream(preset)?.use { input ->
+                        extractZipToDir(input, targetFolder)
+                    } ?: 0
 
-                                    if (relPath.isNotEmpty() && !relPath.endsWith("/")) {
-                                        val outFile = File(targetFolder, relPath)
-                                        outFile.parentFile?.mkdirs()
-                                        FileOutputStream(outFile).use { fos ->
-                                            var len: Int
-                                            while (zis.read(buffer).also { len = it } > 0) {
-                                                fos.write(buffer, 0, len)
-                                            }
-                                        }
-                                        count++
-                                    }
-                                }
-                                zis.closeEntry()
-                                entry = zis.nextEntry
-                            }
-                        }
-                    }
                     count > 0
                 } catch (_: Exception) {
                     false
@@ -431,13 +380,11 @@ class MainActivity : AppCompatActivity() {
             binding.btnMtInstallAndOpen.isEnabled = true
 
             if (success) {
-                val pkg = detectGrandPackage()
-                val targetPath = "/storage/emulated/0/Android/data/$pkg/"
                 val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                clipboard.setPrimaryClip(ClipData.newPlainText("grand_path", targetPath))
+                clipboard.setPrimaryClip(ClipData.newPlainText("grand_path", "/storage/emulated/0/Android/data/ru.grandmobile.game/"))
 
                 binding.tvStatus.text = "✅ Папка files создана в Download/Nemos_Mods/"
-                Toast.makeText(this@MainActivity, "👉 Зажмите папку files и скопируйте в Android → data → $pkg", Toast.LENGTH_LONG).show()
+                Toast.makeText(this@MainActivity, "👉 Скопируйте files в Android → data → ru.grandmobile.game", Toast.LENGTH_LONG).show()
 
                 openMtManagerDirectly(File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "Nemos_Mods"))
             } else {
@@ -448,23 +395,55 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun openMtManagerDirectly(folder: File) {
-        try {
-            StrictMode.setVmPolicy(StrictMode.VmPolicy.Builder().build())
-        } catch (_: Throwable) {}
-
         val mtPackages = listOf("bin.mt.plus", "bin.mt.plus.canary", "bin.mt.mmp")
         for (pkg in mtPackages) {
             try {
-                val folderIntent = Intent(Intent.ACTION_VIEW).apply {
-                    setPackage(pkg)
-                    setDataAndType(Uri.fromFile(folder), "resource/folder")
-                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                val intent = packageManager.getLaunchIntentForPackage(pkg)
+                if (intent != null) {
+                    startActivity(intent)
+                    return
                 }
-                startActivity(folderIntent)
-                return
-            } catch (_: Throwable) {}
+            } catch (_: Exception) {}
         }
         Toast.makeText(this, "MT Manager не установлен", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun extractZipToDir(input: InputStream, targetDir: File): Int {
+        var count = 0
+        val buffer = ByteArray(8192)
+        ZipInputStream(input.buffered()).use { zis ->
+            var entry = zis.nextEntry
+            while (entry != null) {
+                if (!entry.isDirectory) {
+                    val rawName = entry.name.replace('\\', '/')
+                    val relPath = when {
+                        rawName.contains("/data/") -> "data/" + rawName.substringAfter("/data/")
+                        rawName.startsWith("data/") -> rawName
+                        rawName.contains("/texdb/") -> "texdb/" + rawName.substringAfter("/texdb/")
+                        rawName.startsWith("texdb/") -> rawName
+                        rawName.contains("files/") -> rawName.substringAfter("files/")
+                        rawName.startsWith("Molodoy/") -> rawName.removePrefix("Molodoy/")
+                        rawName.endsWith(".dat", true) || rawName.endsWith(".cfg", true) -> "data/$rawName"
+                        else -> rawName
+                    }.trimStart('/')
+
+                    if (relPath.isNotEmpty() && !relPath.endsWith("/")) {
+                        val outFile = File(targetDir, relPath)
+                        outFile.parentFile?.mkdirs()
+                        FileOutputStream(outFile).use { fos ->
+                            var len: Int
+                            while (zis.read(buffer).also { len = it } > 0) {
+                                fos.write(buffer, 0, len)
+                            }
+                        }
+                        count++
+                    }
+                }
+                zis.closeEntry()
+                entry = zis.nextEntry
+            }
+        }
+        return count
     }
 
     private fun openModStream(presetId: String): InputStream? {
@@ -507,19 +486,25 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun launchGrandMobile() {
-        val pkg = detectGrandPackage()
-        
-        // Запуск через системный shell Shizuku без ограничений Android
-        if (isShizukuAvailable() && hasShizukuPermission()) {
-            runShizukuShell("monkey -p $pkg -c android.intent.category.LAUNCHER 1 2>/dev/null || am start -n $pkg/com.grandmobile.game.MainActivity 2>/dev/null")
-            return
+        // Поддержка обеих версий: ru.grandmobile.game (62.01-apk) и com.grandmobile.game (Google Play)
+        val candidates = listOf("ru.grandmobile.game", "com.grandmobile.game", "com.grand.mobile", "com.weiz.grandmobile")
+        for (pkg in candidates) {
+            val intent = packageManager.getLaunchIntentForPackage(pkg)
+            if (intent != null) {
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                startActivity(intent)
+                return
+            }
         }
 
-        val intent = packageManager.getLaunchIntentForPackage(pkg)
-        if (intent != null) {
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-            startActivity(intent)
-            return
+        if (isShizukuAvailable() && hasShizukuPermission()) {
+            for (pkg in candidates) {
+                val (code, _) = runShizukuShell("pm path $pkg")
+                if (code == 0) {
+                    runShizukuShell("monkey -p $pkg -c android.intent.category.LAUNCHER 1 2>/dev/null || am start -n $pkg")
+                    return
+                }
+            }
         }
         Toast.makeText(this, "Запустите Grand Mobile вручную", Toast.LENGTH_SHORT).show()
     }
