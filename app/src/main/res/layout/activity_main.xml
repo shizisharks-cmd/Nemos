@@ -2,7 +2,7 @@
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#0B0B12"
+    android:background="#0A0A12"
     android:fillViewport="true">
 
     <LinearLayout
@@ -23,19 +23,31 @@
                 android:layout_weight="1"
                 android:text="⚡ NEMOS MODS"
                 android:textColor="#FFFFFF"
-                android:textSize="24sp"
+                android:textSize="22sp"
                 android:textStyle="bold" />
+
+            <Button
+                android:id="@+id/btnBuySub"
+                android:layout_width="wrap_content"
+                android:layout_height="34dp"
+                android:layout_marginEnd="8dp"
+                android:background="@drawable/bg_card_unselected"
+                android:paddingHorizontal="10dp"
+                android:text="Продлить"
+                android:textAllCaps="false"
+                android:textColor="#2DD4BF"
+                android:textSize="11sp" />
 
             <Button
                 android:id="@+id/btnLogout"
                 android:layout_width="wrap_content"
-                android:layout_height="36dp"
+                android:layout_height="34dp"
                 android:background="@drawable/bg_card_unselected"
-                android:paddingHorizontal="14dp"
+                android:paddingHorizontal="10dp"
                 android:text="Выйти"
                 android:textAllCaps="false"
                 android:textColor="#A1A1AA"
-                android:textSize="12sp" />
+                android:textSize="11sp" />
         </LinearLayout>
 
         <TextView
@@ -43,7 +55,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
-            android:text="Ключ: АКТИВЕН"
+            android:text="Ключ: АКТИВЕН • До: 2027-01-01"
             android:textColor="#2DD4BF"
             android:textSize="12sp"
             android:textStyle="bold" />
@@ -62,7 +74,7 @@
                 android:layout_height="match_parent"
                 android:layout_weight="1"
                 android:background="@drawable/bg_card_selected"
-                android:text="⚡ 1-Клик (Shizuku)"
+                android:text="⚡ Авто-Вход (Shizuku)"
                 android:textAllCaps="false"
                 android:textColor="#FFFFFF"
                 android:textSize="12sp"
@@ -86,12 +98,12 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="18dp"
             android:layout_marginBottom="10dp"
-            android:text="ВЫБЕРИ СБОРКУ"
+            android:text="ВЫБЕРИТЕ СБОРКУ"
             android:textColor="#A855F7"
             android:textSize="12sp"
             android:textStyle="bold" />
 
-        <!-- СБОРКА KARMA ДЛЯ ФВ -->
+        <!-- Карточка Кармы -->
         <LinearLayout
             android:id="@+id/cardKarma"
             android:layout_width="match_parent"
@@ -113,16 +125,16 @@
                     android:layout_height="wrap_content"
                     android:text="🎯 Чит сб для ФВ (Karma)"
                     android:textColor="#FFFFFF"
-                    android:textSize="17sp"
+                    android:textSize="16sp"
                     android:textStyle="bold" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="2dp"
-                    android:text="Таймцикл, прицелы, текстуры и конфиги для каптов"
+                    android:text="Таймцикл, прицелы, текстуры mobile и конфиги"
                     android:textColor="#A1A1AA"
-                    android:textSize="12sp" />
+                    android:textSize="11sp" />
             </LinearLayout>
 
             <TextView
@@ -135,7 +147,7 @@
                 android:textStyle="bold" />
         </LinearLayout>
 
-        <!-- СБОРКА МОЛОДОЙ -->
+        <!-- Карточка Molodoy -->
         <LinearLayout
             android:id="@+id/cardMolodoy"
             android:layout_width="match_parent"
@@ -157,7 +169,7 @@
                     android:layout_height="wrap_content"
                     android:text="🔥 Сборка Molodoy"
                     android:textColor="#FFFFFF"
-                    android:textSize="17sp"
+                    android:textSize="16sp"
                     android:textStyle="bold" />
 
                 <TextView
@@ -166,7 +178,7 @@
                     android:layout_marginTop="2dp"
                     android:text="Кастомный таймцикл и реалистичные текстуры"
                     android:textColor="#A1A1AA"
-                    android:textSize="12sp" />
+                    android:textSize="11sp" />
             </LinearLayout>
 
             <TextView
@@ -180,7 +192,7 @@
                 android:visibility="gone" />
         </LinearLayout>
 
-        <!-- FPS BOOST -->
+        <!-- Карточка FPS Boost -->
         <LinearLayout
             android:id="@+id/cardFps"
             android:layout_width="match_parent"
@@ -202,7 +214,7 @@
                     android:layout_height="wrap_content"
                     android:text="⚡ FPS Boost"
                     android:textColor="#FFFFFF"
-                    android:textSize="17sp"
+                    android:textSize="16sp"
                     android:textStyle="bold" />
 
                 <TextView
@@ -211,7 +223,7 @@
                     android:layout_marginTop="2dp"
                     android:text="Максимум FPS для слабых телефонов"
                     android:textColor="#A1A1AA"
-                    android:textSize="12sp" />
+                    android:textSize="11sp" />
             </LinearLayout>
 
             <TextView
@@ -225,7 +237,7 @@
                 android:visibility="gone" />
         </LinearLayout>
 
-        <!-- СВОЙ ZIP-АРХИВ -->
+        <!-- Карточка своего ZIP -->
         <LinearLayout
             android:id="@+id/cardCustom"
             android:layout_width="match_parent"
@@ -252,7 +264,7 @@
                         android:layout_height="wrap_content"
                         android:text="📦 Свой ZIP-архив"
                         android:textColor="#FFFFFF"
-                        android:textSize="17sp"
+                        android:textSize="16sp"
                         android:textStyle="bold" />
 
                     <TextView
@@ -260,9 +272,9 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="2dp"
-                        android:text="Выбрать архив из загрузок"
+                        android:text="Выбрать zip-файл из Загрузок"
                         android:textColor="#A1A1AA"
-                        android:textSize="12sp" />
+                        android:textSize="11sp" />
                 </LinearLayout>
 
                 <TextView
@@ -279,16 +291,16 @@
             <Button
                 android:id="@+id/btnPickZip"
                 android:layout_width="match_parent"
-                android:layout_height="40dp"
+                android:layout_height="38dp"
                 android:layout_marginTop="10dp"
-                android:background="@drawable/bg_btn_outline"
+                android:background="@drawable/bg_card_selected"
                 android:text="📁 Выбрать файл .zip"
                 android:textAllCaps="false"
                 android:textColor="#E9D5FF"
-                android:textSize="13sp" />
+                android:textSize="12sp" />
         </LinearLayout>
 
-        <!-- КНОПКА SHIZUKU -->
+        <!-- Секция SHIZUKU: ПОЛНЫЙ АВТОМАТ -->
         <LinearLayout
             android:id="@+id/layoutShizukuView"
             android:layout_width="match_parent"
@@ -301,24 +313,33 @@
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="10dp"
                 android:gravity="center"
-                android:text="⏳ Проверка Shizuku..."
+                android:text="🟢 Shizuku активен: всё готово к авто-входу"
                 android:textColor="#2DD4BF"
                 android:textSize="13sp"
                 android:textStyle="bold" />
 
             <Button
-                android:id="@+id/btnShizukuInstall"
+                android:id="@+id/btnAutoStart"
                 android:layout_width="match_parent"
                 android:layout_height="56dp"
                 android:background="@drawable/bg_btn_primary"
-                android:text="🚀 УСТАНОВИТЬ И ВОЙТИ В ИГРУ (1 КЛИК)"
+                android:text="🚀 АВТО-ВХОД СО СБОРКОЙ (1 КЛИК)"
                 android:textAllCaps="true"
                 android:textColor="#FFFFFF"
-                android:textSize="15sp"
+                android:textSize="14sp"
                 android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:gravity="center"
+                android:text="💡 Нажмите один раз: игра запустится, а сборка автоматически внедрится во время загрузки карты."
+                android:textColor="#71717A"
+                android:textSize="11sp" />
         </LinearLayout>
 
-        <!-- РЕЖИМ MT MANAGER -->
+        <!-- Секция MT MANAGER -->
         <LinearLayout
             android:id="@+id/layoutMtView"
             android:layout_width="match_parent"
@@ -326,47 +347,45 @@
             android:orientation="vertical"
             android:visibility="gone">
 
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="10dp"
-                android:background="@drawable/bg_card_unselected"
-                android:padding="12dp"
-                android:text="💡 Нажми кнопку ниже — MT Manager сразу откроется на папке files.\nОстанется скопировать её справа в:\nAndroid → data → com.grandmobile.game"
-                android:textColor="#E4E4E7"
-                android:textSize="12sp" />
-
             <Button
-                android:id="@+id/btnMtInstallAndOpen"
+                android:id="@+id/btnMtPrepare"
                 android:layout_width="match_parent"
-                android:layout_height="56dp"
+                android:layout_height="52dp"
                 android:background="@drawable/bg_btn_primary"
-                android:text="📂 ОТКРЫТЬ ПАПКУ FILES В MT MANAGER"
-                android:textAllCaps="true"
-                android:textColor="#FFFFFF"
-                android:textSize="14sp"
-                android:textStyle="bold" />
-
-            <Button
-                android:id="@+id/btnMtLaunchGame"
-                android:layout_width="match_parent"
-                android:layout_height="46dp"
-                android:layout_marginTop="10dp"
-                android:background="@drawable/bg_card_selected"
-                android:text="🎮 Запустить Grand Mobile"
+                android:text="1️⃣ Распаковать сборку в Загрузки"
                 android:textAllCaps="false"
                 android:textColor="#FFFFFF"
                 android:textSize="14sp"
                 android:textStyle="bold" />
+
+            <Button
+                android:id="@+id/btnMtOpen"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginTop="10dp"
+                android:background="@drawable/bg_card_selected"
+                android:text="2️⃣ Открыть MT Manager"
+                android:textAllCaps="false"
+                android:textColor="#E9D5FF"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="💡 В MT Manager скопируйте папки data, texdb и audio в Android/data/com.grand.launcher/files/"
+                android:textColor="#71717A"
+                android:textSize="11sp" />
         </LinearLayout>
 
         <TextView
             android:id="@+id/tvStatus"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="14dp"
+            android:layout_marginTop="16dp"
             android:gravity="center"
-            android:text="Сборка готова к запуску"
+            android:text="Лаунчер готов к работе"
             android:textColor="#A1A1AA"
             android:textSize="13sp" />
 
